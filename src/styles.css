@@ -45,3 +45,5 @@
 .examples-shelf{margin-top:16px}.examples-shelf .suggestion-grid{max-width:none}.examples-shelf .suggestion{background:#fff}.conversation .welcome>p{margin-bottom:0}
 
 @media(min-width:761px){.chat-panel{height:auto;min-height:0}.conversation{min-height:220px;flex:1}}
+
+.logo-link img{width:260px;height:72px}.welcome .axel-intro{font-size:17px;color:#4c6383;line-height:1.65;margin-top:16px}.welcome .trial-invitation{font-size:16px;line-height:1.65;margin-top:16px;color:#355780}.welcome .provider-note,.welcome .backing-line,.welcome .guarantee-note{font-size:14px;line-height:1.65;margin-top:13px;color:#60738e}.backing-line a{color:#286bd0;font-weight:600}.conversation{min-height:440px;padding-top:26px;padding-bottom:26px}.welcome h1{font-size:30px}@media(max-width:760px){.logo-link img{width:185px;height:64px}.app-header{padding:0 12px}.trial-pill{display:none}.conversation{min-height:0}}
