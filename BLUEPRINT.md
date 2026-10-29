@@ -1,7 +1,7 @@
-# ITProGuy — Product Blueprint (Review Draft)
+# ITProGuy — Product Blueprint (Phased Implementation)
 
 **Prepared for:** Amit, Axon 1Pro Group  
-**Status:** Blueprint only. No server changes, installs, DNS or SSL changes, accounts, API keys, payments, or customer data have been touched.
+**Status:** Phase 0 planning and read-only server preflight are complete. The current server environment has not been changed. Delivery will proceed in isolated, reviewable phases.
 
 ## 1. Product in one sentence
 
@@ -76,7 +76,7 @@ Offer **one 30-minute trial per verified customer account/email**, with rate lim
 
 Recommend a private-pilot price of **US$5 per service hour** for automated browser work only, sold as prepaid time. At reference rates near US$1 = S$1.28 and ₱64, that is approximately **S$6.40 / ₱320**; refresh the rate and round checkout prices. **US$4/hour** (about S$5.10 / ₱256) is a possible introductory promotion, but US$5 gives more room for unexpected model use, browser time, refunds, and shared infrastructure. Treat local equivalents as estimates, not fixed exchange promises.
 
-Illustrative variable-cost check for one active hour: a Gemini Flash workload of 150,000 input plus 30,000 output tokens is about **US$0.23** at the current listed Gemini 3.6 Flash standard rates; one additional Browserbase Startup overage browser hour is **US$0.10**. A US$5 Stripe card payment settled in USD is about **US$0.67** at the listed 3.4% + US$0.50 rate before any international-card or currency-conversion surcharge. That leaves roughly **US$4.00** before fixed hosting/plan costs, support, tax, refunds, and unusually long or model-heavy jobs. This is an example, not a guarantee: measure real task usage and enforce a hard per-task model and browser budget. If sessions are self-hosted, allocate the VPS cost and capacity instead of treating browser runtime as free.
+Treat US$5/hour as a pilot price, not a guaranteed margin. Model usage, browser runtime, payment fees, currency conversion, tax, support, refunds, and shared hosting all affect the actual cost. Enforce per-task budgets and measure real pilot usage before opening paid service. US$4/hour can be tested as an introductory offer after the same cost review. Keep human engineer work priced separately.
 
 US$4/hour can still cover these direct variable costs under the same controlled example, but leaves about US$3.00 before fixed costs and other overhead. Avoid small standalone card charges: use a larger prepaid wallet/top-up and deduct time in minutes, or sell a one-hour minimum. A US$2/hour headline rate is not recommended. Human engineer escalation must be priced separately; the Axon guide lists engineering and custom maintenance at US$100/hour, so do not include that labor in the automated rate.
 
@@ -104,21 +104,28 @@ Never hard-code or publish the proposed fixed admin password `599000`; it is sho
 
 ## 9. Delivery phases
 
-**Phase 0 — approve this blueprint:** confirm name/domain, first supported platform, pilot price, trial rules, email routing, and claims/terms. No server work.
+**Phase 0 — approved and preflighted:** blueprint, brand, and visual prototype approved for phased implementation. Amit reports that domain and DNS are ready. The German staging host has active workloads, so the deployment must be isolated. Current read-only review shows its package cache cannot refresh while offline. No application files or system settings have been changed.
 
-**Phase 1 — private MVP:** branded landing/workspace, account and admin roles, one tested browser platform, read-only diagnosis, visible task steps, explicit approval, audit record, backups/recovery where supported, spend controls, test-mode payments, and email templates.
+**Phase 1 — isolated public preview:** deploy the static homepage/workspace only after confirming the exact hostname, existing web route, separate deployment path, backup, rollback, and package access if installation is needed. No customer accounts, credentials, database, API keys, payments, or live provider actions.
 
-**Phase 2 — broaden integrations:** add more website builders and OAuth-backed Google Workspace/Microsoft 365/Zoho actions; add task packs, multilingual UX, and production billing after unit-cost and safety review.
+**Phase 2 — accounts and admin:** verified accounts, one-time trial tracking, safe password reset, audit history, spend limits, email templates, and Stripe test mode. Never set a fixed shared admin password.
 
-**Phase 3 — local computer helper:** signed Windows/macOS app, consent-based read-only diagnostics, explicit approval for a small allowlisted repair catalog, and a user-visible uninstall/data-clear process.
+**Phase 3 — one supervised browser workflow:** choose one website platform. Start read-only, explain findings, show the proposed edit, require approval, then perform only the approved action and record the result.
 
-## 10. Decisions requested before implementation
+**Phase 4 — expand integrations:** add more tested website builders and official Google Workspace, Microsoft 365, Zoho, and hosting connections with limited permissions and recovery guidance.
 
-1. Confirm the app domain: `ITProGuy.ai`, `ITProGuy.com`, or another exact hostname.
-2. Pick the first supported website platform: WordPress, Wix, or Squarespace.
-3. Approve a pilot starting point of US$10/hour (local equivalents shown as rounded, updated estimates) or set another rate.
-4. Confirm whether 30 free minutes can include a few approved low-risk changes, or should remain read-only.
-5. Confirm `hireme@ITproguy.com` forwarding to `amit@axon.com.sg` and the exact capitalization/spelling of the owned domain.
+**Phase 5 — optional local helper:** after the browser service is stable, consider signed Windows/macOS software for consent-based read-only checks and a small, explicit repair list.
+
+See [`DEPLOYMENT-PLAN.md`](DEPLOYMENT-PLAN.md) for the current phase gates and status.
+
+## 10. Remaining decisions before later phases
+
+1. Verify the exact public hostname before SSL and deployment. Amit reports that domain and DNS setup are complete; the hostname still needs to be matched against the active DNS record.
+2. Choose the first website integration before Phase 3: WordPress, Wix, or Squarespace.
+3. Decide whether the one-time 30-minute trial permits a small number of approved low-risk edits or stays read-only.
+4. Confirm the exact domain and forwarding destination before configuring `hireme@` email routing.
+
+The pilot pricing recommendation is US$5 per automated service hour, with local currency prices refreshed and shown before checkout. Human engineer work remains separate.
 
 ---
 
