@@ -61,3 +61,16 @@ Only after the browser service is stable, consider a signed Windows/macOS helper
 ## Next phase
 
 Phase 1 is complete. Customer accounts, AI/API integration, billing, and live browser actions remain unconfigured. Continue with Phase 2 as a separate, bounded change set. Domain email routing is also not configured; no MX/SPF/DKIM/DMARC records were added during the website deployment.
+
+## React workspace redesign — 30 October 2026
+
+- Deployed application source: `ec04879`, based on `8d6ede5`.
+- Rebuilt with React 19.3.1, locally bundled with esbuild; Manrope and DM Sans are linked from Google Fonts.
+- Prominent logo with corrected SVG bounds; full-width chat/browser workspace; large task composer; session-only history; sample approval flow.
+- Production assets: `assets/app.js`, `assets/app.css`; static HTML references versioned asset URLs to refresh cached copies.
+- Source and production assets are tracked in Git. No server package installation, service restart, firewall change, or Apache configuration change was needed for the redesign.
+- Staged first at `/preview/`, then copied the validated HTML into the main webroot. Source files and the repository remain outside the public document root.
+- Desktop validation: task suggestions fill the composer, submitting displays the demo response, approval updates sample status, session history lists the task, and New task resets the workspace. Logo and Google Font declarations were checked visually / in the DOM. The composer is about 660px wide by 180px high at the current desktop size, and Send remains visible.
+- Mobile CSS includes a chat/workspace switch; the connected browser's viewport override did not change its measured width, so phone-size visual verification remains outstanding.
+- Backup before replacing the homepage: `/srv/itproguy/index.before-react.html`. To restore the previous static layout, copy that file over the public `index.html`. Retain the current JS/CSS assets until rollback is complete; they do not affect the previous self-contained HTML.
+- React builds do not enable AI, authentication, payments, live browser operation, or real trial deductions.
