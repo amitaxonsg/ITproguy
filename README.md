@@ -25,6 +25,8 @@ Open `index.html` in a browser to view the local prototype. No backend, account,
 
 ## Current status
 
-The blueprint and visual prototype are complete. Amit reports that the domain and DNS are ready. The German staging server has been reviewed in read-only mode and already hosts other services, so the first deployment must be isolated. No platform deployment, customer sign-in, API key, billing, or live browser automation is configured yet.
+Phase 1 is live at [itproguy.com](https://itproguy.com) and [www.itproguy.com](https://www.itproguy.com) on the German staging server, using a dedicated static site folder and Apache virtual host. Both names have a valid Let's Encrypt certificate; HTTP redirects to HTTPS, and a renewal dry run succeeded. The workspace fills the browser width.
+
+This is still a visual preview: customer sign-in, AI/API integration, billing, and live browser automation are not connected.
 
 See [`DEPLOYMENT-PLAN.md`](DEPLOYMENT-PLAN.md) for the phase gates and current server status.
