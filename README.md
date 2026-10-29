@@ -1,32 +1,28 @@
 # ITProGuy
 
-**ITProGuy** is a guided digital-operations assistant for everyday business tasks. Users explain what they need in plain English; Axel checks first, explains the finding, and waits for approval before making supported changes.
+**Axel, your IT Pro Guy by Axon 1Pro Group.**
 
-## Repository
+A guided workspace for everyday website, email, and business-app tasks. Established in Singapore, with headquarters in Clark.
 
-- [`BLUEPRINT.md`](BLUEPRINT.md) — product, safety, platform, pricing, and rollout plan.
-- [`DEPLOYMENT-PLAN.md`](DEPLOYMENT-PLAN.md) — phased delivery plan and current status.
-- [`index.html`](index.html) — self-contained interactive homepage/workspace prototype. It is a visual demo only; sign-in, AI, payments, and provider actions are not connected.
-- [`assets/itproguy-logo.svg`](assets/itproguy-logo.svg) — scalable brand wordmark.
-- [`assets/axel-avatar.webp`](assets/axel-avatar.webp) — generated mascot concept for Axel.
+## Live preview
 
-## Brand direction
+- https://itproguy.com
+- https://www.itproguy.com
 
-**Axel, your IT Pro Guy by Axon 1Pro Group**  
-Established in Singapore, with headquarters in Clark.
+The interface is built with **React 19.3.1**, bundled locally with esbuild, with **Manrope and DM Sans from Google Fonts** and Lucide icons. It has a full-width workspace, prominent brand logo, task conversation, large composer, session history, and browser/approval previews.
 
-The product is designed for non-technical business users: a task-first workspace, plain-language findings, a visible browser, and explicit approval before online changes. It is not a general-purpose chatbot or image generator.
+This remains a visual, interactive prototype. AI, customer accounts, payments, trial billing, and live provider actions are not connected. Session history is held in memory and clears on reload; no customer data is stored.
 
-## Preview
+## Source and build
 
-Open `index.html` in a browser to view the local prototype. No backend, account, API key, or customer data is required.
+- `src/main.jsx` — React components and preview interactions.
+- `src/styles.css` — desktop and mobile layout.
+- `index.html` — production HTML entry and Google Fonts links.
+- `assets/app.js`, `assets/app.css` — committed production bundle.
+- `assets/itproguy-logo.svg`, `assets/axel-avatar.webp` — brand assets.
+- `BLUEPRINT.md` — product and rollout plan.
+- `DEPLOYMENT-PLAN.md` — server deployment and rollback notes.
 
-![ITProGuy homepage design preview](assets/homepage-design-preview.png)
+Run `npm ci` followed by `npm run build`. The build produces `dist/index.html` and `dist/assets/app.js` / `app.css`. Copy the brand SVG and avatar from `assets/` alongside the generated assets when deploying to a fresh webroot. Publish only production HTML and assets, never source, planning files, package files, or `.git`.
 
-## Current status
-
-Phase 1 is live at [itproguy.com](https://itproguy.com) and [www.itproguy.com](https://www.itproguy.com) on the German staging server, using a dedicated static site folder and Apache virtual host. Both names have a valid Let's Encrypt certificate; HTTP redirects to HTTPS, and a renewal dry run succeeded. The workspace fills the browser width.
-
-This is still a visual preview: customer sign-in, AI/API integration, billing, and live browser automation are not connected.
-
-See [`DEPLOYMENT-PLAN.md`](DEPLOYMENT-PLAN.md) for the phase gates and current server status.
+The German server already has the production assets and requires no Node runtime or package installation to serve this preview.
