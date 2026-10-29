@@ -20,6 +20,8 @@ The product is designed for non-technical business users: a task-first workspace
 
 Open `index.html` in a browser to view the local prototype. No backend, account, API key, or customer data is required.
 
+![ITProGuy homepage design preview](assets/homepage-design-preview.png)
+
 ## Current status
 
 Blueprint and visual prototype only. No server deployment, DNS/SSL change, provider integration, authentication, API key, billing, or live browser automation has been configured.
