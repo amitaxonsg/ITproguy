@@ -85,3 +85,10 @@ Phase 1 is complete. Customer accounts, AI/API integration, billing, and live br
 - Browser checks: no visible text below 14px; no horizontal page overflow; shortcuts below composer; 20 platform cards; visible logos load; focus pauses animation.
 - Both HTTPS names returned 200. Only ITProGuy assets/HTML changed; no shared settings or restart.
 - Rollback set: `/srv/itproguy/backups/before-readability/` contains prior React index.html, assets/app.js, and assets/app.css from `ec04879`. Restore all three together.
+
+## Dismissible offer and mobile QA — 30 October 2026
+
+- Hire Axel offer now sits immediately below the composer. X dismisses it; selecting Don't show again and closing persists the preference in this browser. Help can restore the offer.
+- Verified close, reload without persistence, remembered dismissal after reload, and restoring via Help.
+- Phone QA used a same-origin 390px iframe (375px content width after scrollbar), not the ineffective extension viewport override. Chat and browser views both had matching client/scroll widths: no horizontal overflow. Open workspace and Back to Axel both worked. Temporary QA page removed after testing.
+- Offer includes the US$5/hour launch proposition and user-provided Singapore establishment year, 2002. AI connections and guarantee terms remain explicitly pending launch.
