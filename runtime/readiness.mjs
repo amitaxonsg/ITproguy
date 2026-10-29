@@ -1,12 +1,12 @@
-import { GoogleGenAI } from '@google/genai';
+import Anthropic from '@anthropic-ai/sdk';
 import { chromium } from 'playwright';
 import { config } from 'dotenv';
 import { z } from 'zod';
-config({ path: '/srv/itproguy/private/gemini.env', quiet: true });
-const settings = z.object({ GEMINI_API_KEY: z.string().optional() }).parse(process.env);
-if (typeof GoogleGenAI !== 'function') throw new Error('Gemini SDK import failed');
-console.log('Gemini SDK: installed; no API call made');
-console.log('API key: '+(settings.GEMINI_API_KEY ? 'configured (value hidden)' : 'not configured'));
+config({ path: '/srv/itproguy/private/claude.env', quiet: true });
+const settings = z.object({ ANTHROPIC_API_KEY: z.string().optional() }).parse(process.env);
+if (typeof Anthropic !== 'function') throw new Error('Claude SDK import failed');
+console.log('Claude SDK: installed; no API call made');
+console.log('API key: '+(settings.ANTHROPIC_API_KEY ? 'configured (value hidden)' : 'not configured'));
 const browser = await chromium.launch({ headless: true, chromiumSandbox: true, timeout: 30000 });
 try {
   const context = await browser.newContext();
