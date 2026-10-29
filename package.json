@@ -1,0 +1,17 @@
+{
+  "name": "itproguy-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "lucide-react": "1.64.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}
