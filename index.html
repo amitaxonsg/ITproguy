@@ -37,6 +37,12 @@
     .trust{display:flex;gap:9px;align-items:flex-start;color:#62748c;font-size:11px;margin-top:17px}
     .trust svg{width:17px;height:17px;flex:none;color:var(--green)}
     .account{margin-top:auto;padding-top:18px}
+    .profile-row{display:flex;align-items:center;gap:10px;padding:2px 1px 11px}
+    .profile-avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#e0efff,#d8f4ee);color:#1769d2;font-size:13px;font-weight:850}
+    .profile-copy{min-width:0;flex:1}
+    .profile-copy strong{display:block;font-size:11px}
+    .profile-copy span{display:block;color:var(--muted);font-size:10px}
+    .profile-open{border:1px solid #dce5ef;background:#fff;color:#52647c;border-radius:10px;padding:7px 10px;font-size:10px;font-weight:800}
     .account-card{border:1px solid #e5ebf2;border-radius:16px;padding:13px;display:flex;gap:11px;align-items:center;background:#fbfcfe}
     .account-icon{width:36px;height:36px;border-radius:12px;background:#e7f1ff;color:var(--blue);display:grid;place-items:center;font-weight:900}
     .account-copy{min-width:0;flex:1}
@@ -122,6 +128,7 @@
         <span>You review and approve each online change before Axel submits it. Sign in only inside the provider’s browser page.</span>
       </div>
       <div class="account">
+        <div class="profile-row"><div class="profile-avatar">G</div><div class="profile-copy"><strong>Guest profile</strong><span>Sign in to save your tasks</span></div><button class="profile-open" id="profileSignIn">Sign in</button></div>
         <div class="account-card">
           <div class="account-icon">30</div>
           <div class="account-copy"><strong>Free first session</strong><span>One-time trial · 30 minutes</span><div class="meter"><i></i></div></div>
@@ -134,9 +141,9 @@
     <section class="right" aria-label="Visible browser work area">
       <div class="topbar">
         <div><div class="workspace-title">Your work, in view</div><div class="workspace-subtitle">Axel explains each step as it happens</div></div>
-        <div class="secure"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8"/><path d="M12 14v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Private browser session</div>
+        <div class="secure"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8"/><path d="M12 14v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Secure sign-in preview</div>
       </div>
-      <div class="ticker" aria-label="Platforms Axel can help with"><div class="ticker-track"><span>WordPress</span><span>Wix</span><span>Squarespace</span><span>Shopify</span><span>Google Workspace</span><span>Microsoft 365</span><span>Zoho</span><span>cPanel</span><span>Hosting providers</span><span>Browser-based router settings</span><span>WordPress</span><span>Wix</span><span>Squarespace</span><span>Shopify</span><span>Google Workspace</span><span>Microsoft 365</span><span>Zoho</span><span>cPanel</span><span>Hosting providers</span><span>Browser-based router settings</span></div></div>
+      <div class="ticker" aria-label="Platforms Axel can help with"><div class="ticker-track"><span>WordPress</span><span>Wix</span><span>Squarespace</span><span>Shopify</span><span>Google Workspace</span><span>Microsoft 365</span><span>Zoho</span><span>cPanel</span><span>Hosting providers</span><span>Router troubleshooting</span><span>WordPress</span><span>Wix</span><span>Squarespace</span><span>Shopify</span><span>Google Workspace</span><span>Microsoft 365</span><span>Zoho</span><span>cPanel</span><span>Hosting providers</span><span>Router troubleshooting</span></div></div>
       <div class="browser">
         <div class="browser-head"><div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div><div class="address"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8"/></svg><span id="urlText">Secure browser · waiting for a task</span></div><div class="browser-mode">Your screen · Axel’s actions</div></div>
         <div class="browser-body">
@@ -191,6 +198,7 @@
     document.getElementById('cancel').addEventListener('click',()=>document.getElementById('approval').classList.remove('show'));
     document.getElementById('approve').addEventListener('click',()=>{document.getElementById('approval').classList.remove('show');document.getElementById('activityTitle').textContent='Sample approval received';document.getElementById('activityText').textContent='The prototype does not submit or change anything on a real website.';document.getElementById('activityDot').style.background='#18a47c';showToast('Demo approved — no live change was made.');});
     document.getElementById('signIn').addEventListener('click',()=>showToast('Account sign-in will be connected during implementation.'));
+    document.getElementById('profileSignIn').addEventListener('click',()=>showToast('Account sign-in will be connected during implementation.'));
     document.getElementById('upgrade').addEventListener('click',()=>showToast('Plans and prepaid hours will be connected during implementation.'));
   </script>
 </body>
