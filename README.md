@@ -5,6 +5,7 @@
 ## Repository
 
 - [`BLUEPRINT.md`](BLUEPRINT.md) — product, safety, platform, pricing, and rollout plan.
+- [`DEPLOYMENT-PLAN.md`](DEPLOYMENT-PLAN.md) — phased delivery plan and current status.
 - [`index.html`](index.html) — self-contained interactive homepage/workspace prototype. It is a visual demo only; sign-in, AI, payments, and provider actions are not connected.
 - [`assets/itproguy-logo.svg`](assets/itproguy-logo.svg) — scalable brand wordmark.
 - [`assets/axel-avatar.webp`](assets/axel-avatar.webp) — generated mascot concept for Axel.
@@ -24,4 +25,6 @@ Open `index.html` in a browser to view the local prototype. No backend, account,
 
 ## Current status
 
-Blueprint and visual prototype only. No server deployment, DNS/SSL change, provider integration, authentication, API key, billing, or live browser automation has been configured.
+The blueprint and visual prototype are complete. Amit reports that the domain and DNS are ready. The German staging server has been reviewed in read-only mode and already hosts other services, so the first deployment must be isolated. No platform deployment, customer sign-in, API key, billing, or live browser automation is configured yet.
+
+See [`DEPLOYMENT-PLAN.md`](DEPLOYMENT-PLAN.md) for the phase gates and current server status.
