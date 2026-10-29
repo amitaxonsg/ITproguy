@@ -92,3 +92,15 @@ Phase 1 is complete. Customer accounts, AI/API integration, billing, and live br
 - Verified close, reload without persistence, remembered dismissal after reload, and restoring via Help.
 - Phone QA used a same-origin 390px iframe (375px content width after scrollbar), not the ineffective extension viewport override. Chat and browser views both had matching client/scroll widths: no horizontal overflow. Open workspace and Back to Axel both worked. Temporary QA page removed after testing.
 - Offer includes the US$5/hour launch proposition and user-provided Singapore establishment year, 2002. AI connections and guarantee terms remain explicitly pending launch.
+
+
+## Private tools installation — 30 October 2026
+
+- Installed under `/srv/itproguy/runtime`, with scoped Node 22.23.1 and npm 10.9.8 copied from the existing host installation. Runs as `axonadmin`; system-wide Node and other applications unchanged.
+- Locked dependencies installed successfully: Google GenAI SDK 2.32.0, Playwright 1.64.1, dotenv 18.0.9, Zod 4.6.7.
+- Downloaded Playwright Chromium/headless shell 156.0.8078.4 (revision 1248), FFmpeg revision 1013 into the application-only browser cache. Runtime footprint approximately 886 MB.
+- Verified Gemini SDK import. No API key configured or API call made. Private key directory is axonadmin-owned mode 700; no real key file created.
+- Sandbox-enabled browser launch FAILED: Ubuntu AppArmor restricts unprivileged user namespaces (`apparmor_restrict_unprivileged_userns=1`). The engine is installed but not operational for sandboxed browsing yet.
+- Exact-path AppArmor draft prepared at `runtime/itproguy-chromium.apparmor.example` in Git and `/srv/itproguy/runtime/itproguy-chromium.apparmor` on host. Parsing checked with skip-kernel-load; no policy enabled. Explicit approval needed before root-level installation, loading, and protecting binary paths against replacement.
+- Did not use --no-sandbox, change global sysctl/firewall/Apache/package settings, or start a public API/browser agent. Existing ITProGuy homepage still returned HTTP 200.
+- Next: approve the scoped sandbox exception, re-test browser, then securely configure the Gemini key and authenticated/cost-controlled application backend. A key alone will not make the current frontend live.
