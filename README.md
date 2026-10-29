@@ -7,7 +7,7 @@
 - [`BLUEPRINT.md`](BLUEPRINT.md) — product, safety, platform, pricing, and rollout plan.
 - [`index.html`](index.html) — self-contained interactive homepage/workspace prototype. It is a visual demo only; sign-in, AI, payments, and provider actions are not connected.
 - [`assets/itproguy-logo.svg`](assets/itproguy-logo.svg) — scalable brand wordmark.
-- [`assets/axel-avatar.png`](assets/axel-avatar.png) — generated mascot concept for Axel.
+- [`assets/axel-avatar.webp`](assets/axel-avatar.webp) — generated mascot concept for Axel.
 
 ## Brand direction
 
