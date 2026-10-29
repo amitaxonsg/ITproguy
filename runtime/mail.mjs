@@ -1,0 +1,13 @@
+const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+export function otpEmail(code){
+  if(!/^\d{8}$/.test(code))throw Error('INVALID_OTP_FORMAT');
+  const text=`Your ITProGuy sign-in code is ${code}. It expires in 10 minutes. Do not share it. Your first verified account receives one 30-minute trial. Returning accounts keep their previous balance. If you did not request this, ignore this email.\nITProGuy from Axon | axon.com.sg | WhatsApp support: https://wa.me/639614044560`;
+  const html=`<!doctype html><html><body style="margin:0;background:#fff;color:#19263d;font-family:Arial,sans-serif"><table role="presentation" width="100%"><tr><td align="center" style="padding:36px 20px"><table role="presentation" style="width:100%;max-width:580px"><tr><td><img src="https://itproguy.com/assets/itproguy-approved-logo.png" width="240" alt="ITProGuy by Axon 1Pro" style="max-width:100%;height:auto"></td></tr><tr><td style="padding:30px 0;font-size:17px;line-height:1.7"><h1 style="font-size:26px;color:#142238">Put Axel to work.</h1><p>Use this code to sign in securely to ITProGuy.</p><p style="padding:22px;background:#f4f7fc;border-radius:12px;font-size:34px;font-weight:bold;letter-spacing:8px;text-align:center">${escape(code)}</p><p>This code expires in <strong>10 minutes</strong>. Never share it with anyone.</p><p>New here? Your first verified account receives a <strong>30-minute free trial</strong>. Returning accounts keep their existing balance.</p><p style="color:#60718a">If you did not request this email, you can safely ignore it.</p></td></tr><tr><td style="border-top:1px solid #e5eaf2;padding-top:22px;font-size:14px;line-height:1.8;color:#60718a">ITProGuy from Axon<br>Axon 1Pro Solutions · Singapore<br><a href="https://axon.com.sg" style="color:#286bd0">axon.com.sg</a> · <a href="https://wa.me/639614044560" style="color:#286bd0">WhatsApp support</a><br>This is a transactional sign-in email.</td></tr></table></td></tr></table></body></html>`;
+  return {text,html};
+}
+export async function sendOtp({email,code},token){
+  if(!token)throw Error('MAILTRAP_NOT_CONFIGURED');
+  const response=await fetch('https://send.api.mailtrap.io/api/send',{method:'POST',signal:AbortSignal.timeout(15000),headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({from:{email:'amit@axon.com.sg',name:'ITProGuy from Axon'},to:[{email}],subject:'Your ITProGuy sign-in code',...otpEmail(code),category:'ITProGuy sign-in'})});
+  if(!response.ok)throw Error('MAILTRAP_SEND_FAILED_'+response.status);
+  const result=await response.json();if(!result.success)throw Error('MAILTRAP_SEND_NOT_CONFIRMED');
+}
