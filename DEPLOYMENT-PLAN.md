@@ -1,22 +1,32 @@
 # ITProGuy staged delivery plan
 
 **Owner:** Amit, Axon 1Pro Group  
-**Updated:** 29 October 2026  
+**Updated:** 30 October 2026 (UTC+8)  
 **Delivery style:** One small, reviewable phase at a time.
 
 ## Phase 0 — product and host preflight
 
-**Status: complete for planning; no application files changed on the server.**
+**Status: complete. Phase 1 static preview is now deployed.**
 
 - Product name, Axel persona, task-first experience, visual prototype, and safety principles are recorded in the blueprint.
-- Amit reports that the domain and DNS are ready. Verify the exact hostname and its records before binding the site or issuing SSL.
+- Verified in Cloudflare and from the server: `itproguy.com` and `www.itproguy.com` both resolve to `161.97.137.234` (DNS only).
 - The German staging server was reviewed through its web console. It is an existing shared environment with active web and container workloads, not an empty VPS.
-- The server's software-update screen reports that it cannot refresh the package cache while offline. Investigate connectivity before installing anything.
-- No server software, firewall, web-server configuration, existing application, or customer site has been changed.
+- Existing Apache, Git, and Certbot were sufficient for this static deployment. GitHub access and ACME validation succeeded; no package installation or package-cache changes were needed.
+- Added only ITProGuy's site files, dedicated Apache virtual host, and certificate. No global Apache settings, firewall rules, packages, or other site configurations were modified. Apache was gracefully reloaded after configuration validation.
 
 ## Phase 1 — isolated public preview
 
-Deploy the current static homepage/workspace preview to the agreed hostname.
+**Status: deployed and verified at https://itproguy.com and https://www.itproguy.com.**
+
+- Source: `5473ee5` (full-width workspace); original preview source: `246865a`.
+- Dedicated source checkout: `/srv/itproguy/repo`, owned by `axonadmin`.
+- Public files: `/var/www/itproguy.com/public` (only HTML and assets; repository and planning documents are outside the document root).
+- Site configuration: `/etc/apache2/sites-available/itproguy.com.conf`.
+- HTTP redirects to HTTPS; ACME challenge paths remain available for renewal.
+- Let's Encrypt certificate covers both names and expires 27 January 2027. Existing Certbot timer is active; the existing Apache renewal hook was inspected and left unchanged. A renewal dry run scoped to ITProGuy succeeded.
+- Validation: Apache syntax OK; both HTTPS names returned 200; both HTTP names returned 301; logo and avatar returned 200; `.git/HEAD` was denied and the blueprint was not served. Browser verified the layout starts at the left edge, has no fixed maximum width, and has no horizontal overflow.
+- Backups: initial HTTP-only site configuration at `/srv/itproguy/itproguy.http.conf`; original preview HTML at `/srv/itproguy/index.before-fullwidth.html`.
+- Roll back the width edit by restoring that HTML file. To withdraw only this preview: disable `itproguy.com.conf`, validate Apache, and gracefully reload. Do not change other virtual hosts or remove shared services.
 
 **Before deployment:** confirm the exact hostname and current DNS destination; inspect the existing web route; confirm a dedicated deployment directory or isolated container; make a site-level backup; confirm a rollback path; and restore package-cache connectivity only if installation is required.
 
@@ -48,6 +58,6 @@ Only after the browser service is stable, consider a signed Windows/macOS helper
 - Keep automated service pricing at the proposed **US$5/hour pilot rate**; assess real usage and payment fees before opening paid service. Human engineer work remains separate.
 - Make one phase's change set at a time and record what was deployed and how to roll it back.
 
-## Current blocker before Phase 1
+## Next phase
 
-The server's package cache currently reports offline, and the terminal session reached a sudo password prompt. No password was entered and no privileged command was run. The exact hostname and the isolated route also need verification. Phase 1 can start after these checks are resolved without touching the server's existing applications.
+Phase 1 is complete. Customer accounts, AI/API integration, billing, and live browser actions remain unconfigured. Continue with Phase 2 as a separate, bounded change set. Domain email routing is also not configured; no MX/SPF/DKIM/DMARC records were added during the website deployment.
