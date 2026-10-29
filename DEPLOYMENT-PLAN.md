@@ -74,3 +74,14 @@ Phase 1 is complete. Customer accounts, AI/API integration, billing, and live br
 - Mobile CSS includes a chat/workspace switch; the connected browser's viewport override did not change its measured width, so phone-size visual verification remains outstanding.
 - Backup before replacing the homepage: `/srv/itproguy/index.before-react.html`. To restore the previous static layout, copy that file over the public `index.html`. Retain the current JS/CSS assets until rollback is complete; they do not affect the previous self-contained HTML.
 - React builds do not enable AI, authentication, payments, live browser operation, or real trial deductions.
+
+
+## Readability and platform strip — 30 October 2026
+
+- Preserved the React workspace. Increased application text to a 14px minimum, with larger body/input text, stronger contrast, and Google Fonts.
+- Moved the four task shortcuts below the chat composer.
+- Added 20 scrolling platform examples with locally served brand SVGs. The strip pauses on hover/focus and respects reduced motion.
+- Added instructions to sign in on the user's own platform in the browser and never put passwords, verification codes, or recovery codes in the chat. No absolute security guarantee or universal action-support claim.
+- Browser checks: no visible text below 14px; no horizontal page overflow; shortcuts below composer; 20 platform cards; visible logos load; focus pauses animation.
+- Both HTTPS names returned 200. Only ITProGuy assets/HTML changed; no shared settings or restart.
+- Rollback set: `/srv/itproguy/backups/before-readability/` contains prior React index.html, assets/app.js, and assets/app.css from `ec04879`. Restore all three together.

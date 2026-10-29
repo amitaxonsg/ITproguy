@@ -43,3 +43,5 @@
 @media(max-width:760px){.chat-panel{height:auto;position:static}}
 
 .examples-shelf{margin-top:16px}.examples-shelf .suggestion-grid{max-width:none}.examples-shelf .suggestion{background:#fff}.conversation .welcome>p{margin-bottom:0}
+
+@media(min-width:761px){.chat-panel{height:auto;min-height:0}.conversation{min-height:220px;flex:1}}

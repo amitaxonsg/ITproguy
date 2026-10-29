@@ -9,7 +9,7 @@ A guided workspace for everyday website, email, and business-app tasks. Establis
 - https://itproguy.com
 - https://www.itproguy.com
 
-The interface is built with **React 19.3.1**, bundled locally with esbuild, with **Manrope and DM Sans from Google Fonts** and Lucide icons. It has a full-width workspace, prominent brand logo, task conversation, large composer, session history, and browser/approval previews.
+The interface is built with **React 19.3.1**, bundled locally with esbuild, with **Manrope and DM Sans from Google Fonts** and Lucide icons. It has a full-width workspace, prominent brand logo, task conversation, large composer, session history, and browser/approval previews. Interface text is at least 14px; body and input text are larger. Task shortcuts sit below the composer. A scrolling strip shows 20 example platform brands with clear sign-in guidance.
 
 This remains a visual, interactive prototype. AI, customer accounts, payments, trial billing, and live provider actions are not connected. Session history is held in memory and clears on reload; no customer data is stored.
 
@@ -23,6 +23,6 @@ This remains a visual, interactive prototype. AI, customer accounts, payments, t
 - `BLUEPRINT.md` — product and rollout plan.
 - `DEPLOYMENT-PLAN.md` — server deployment and rollback notes.
 
-Run `npm ci` followed by `npm run build`. The build produces `dist/index.html` and `dist/assets/app.js` / `app.css`. Copy the brand SVG and avatar from `assets/` alongside the generated assets when deploying to a fresh webroot. Publish only production HTML and assets, never source, planning files, package files, or `.git`.
+Run `npm ci` followed by `npm run build`. The build produces `dist/index.html`, `dist/assets/app.js` / `app.css`, and platform SVGs in `dist/assets/platforms/`. Include that folder when deploying. Copy the brand SVG and avatar from `assets/` alongside the generated assets when deploying to a fresh webroot. Publish only production HTML and assets, never source, planning files, package files, or `.git`.
 
 The German server already has the production assets and requires no Node runtime or package installation to serve this preview.
