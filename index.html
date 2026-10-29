@@ -1,0 +1,48 @@
+Warning: truncated output (original token count: 5205)
+Total output lines: 197
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f8fc">
+  <meta name="description" content="ITProGuy helps business users handle everyday website, email, and work-app tasks with clear explanations and approval before changes.">
+  <title>ITProGuy — Axel is ready to help</title>
+  <style>
+    :root{--ink:#152742;--muted:#718098;--blue:#1769d2;--teal:#12a9a5;--line:#e4eaf2;--paper:#fff;--bg:#f4f7fb;--soft:#eef5ff;--green:#168f70;--shadow:0 18px 50px rgba(29,54,88,.10)}
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(ellipse at 79% 10%,#e8f4ff 0,transparent 40%),var(--bg);color:var(--ink);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+    button,textarea{font:inherit}
+    button{cursor:pointer}
+    .app{max-width:1600px;min-height:100vh;margin:0 auto;padding:22px;display:grid;grid-template-columns:minmax(330px,390px) 1fr;gap:22px}
+    .left,.right{border:1px solid rgba(222,231,242,.9);background:rgba(255,255,255,.88);border-radius:26px;box-shadow:var(--shadow);overflow:hidden}
+    .left{display:flex;flex-direction:column;padding:26px 25px 20px;min-height:calc(100vh - 44px)}
+    .brand{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+    .brand img{width:202px;height:auto;display:block}
+    .sign-in{border:0;color:#52647c;background:#f1f5fa;border-radius:999px;padding:9px 14px;font-size:12px;font-weight:700}
+    .hello{display:flex;gap:14px;align-items:center;margin-bottom:16px}
+    .avatar-wrap{width:94px;height:94px;flex:none;border-radius:26px;background:linear-gradient(145deg,#e8f4ff,#d8f1ed);display:grid;place-items:end center;overflow:hidden}
+    .avatar-wrap img{width:106px;height:106px;object-fit:cover;object-position:center 22%;mix-blend-mode:multiply}
+    .hello-copy .eyebrow{font-size:11px;color:var(--blue);font-weight:800;let…4205 tokens truncated…ent.getElementById('openBrowser').textContent='Continue the demo';
+      showToast('Sample only — the real service is not connected yet.');
+    });
+    document.getElementById('openBrowser').addEventListener('click',()=>{
+      if(document.getElementById('activityTitle').textContent==='Ready when you are'){
+        document.getElementById('activityTitle').textContent='Sign-in preview';
+        document.getElementById('activityText').textContent='This panel is where the provider page would appear. Sign-in is not connected in this demo.';
+        document.getElementById('urlText').textContent='Sign-in preview · demo only';
+        document.getElementById('previewTitle').textContent='You would sign in to your own service here.';
+        document.getElementById('previewCopy').textContent='Axel never asks you to paste a password into the task box. The live service will open the provider’s sign-in page in this panel.';
+        document.getElementById('openBrowser').textContent='Got it';
+      }else{
+        document.getElementById('approval').classList.add('show');
+      }
+    });
+    document.getElementById('cancel').addEventListener('click',()=>document.getElementById('approval').classList.remove('show'));
+    document.getElementById('approve').addEventListener('click',()=>{document.getElementById('approval').classList.remove('show');document.getElementById('activityTitle').textContent='Sample approval received';document.getElementById('activityText').textContent='The prototype does not submit or change anything on a real website.';document.getElementById('activityDot').style.background='#18a47c';showToast('Demo approved — no live change was made.');});
+    document.getElementById('signIn').addEventListener('click',()=>showToast('Account sign-in will be connected during implementation.'));
+    document.getElementById('upgrade').addEventListener('click',()=>showToast('Plans and prepaid hours will be connected during implementation.'));
+  </script>
+</body>
+</html>
