@@ -1,0 +1,4 @@
+# Insert only inside itproguy.com's HTTPS VirtualHost, after checking proxy modules.
+# The API requires an owner cookie and accepts POST requests from this site only.
+ProxyPass /api/ http://127.0.0.1:3188/api/ connectiontimeout=5 timeout=420
+ProxyPassReverse /api/ http://127.0.0.1:3188/api/

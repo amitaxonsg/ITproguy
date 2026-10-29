@@ -1,0 +1,25 @@
+[Unit]
+Description=ITProGuy owner preview API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=axonadmin
+Group=axonadmin
+WorkingDirectory=/srv/itproguy/runtime
+Environment=PATH=/srv/itproguy/runtime/tools/bin:/usr/bin:/bin
+ExecStart=/srv/itproguy/runtime/tools/bin/node /srv/itproguy/runtime/server.mjs
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/itproguy/private
+UMask=0077
+MemoryMax=384M
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

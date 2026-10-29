@@ -27,7 +27,7 @@ export function createClient() {
 
 // This transport plans only. No tools, shell, browser actions, or public HTTP listener.
 // taskClass/intent and validate must be supplied by trusted application code, not a client override.
-export async function askAxel({ prompt, taskClass = 'standard', intent = 'it_task', validate }, client) {
+export async function askAxel({ prompt, history = [], taskClass = 'standard', intent = 'it_task', validate }, client) {
   if (typeof prompt !== 'string' || !prompt.trim() || prompt.length > policy.maxInputChars)
     throw new Error('INVALID_PROMPT');
   if (!Object.hasOwn(policy.limits, taskClass)) throw new Error('INVALID_TASK_CLASS');
@@ -43,7 +43,7 @@ export async function askAxel({ prompt, taskClass = 'standard', intent = 'it_tas
         max_tokens: policy.limits[taskClass],
         thinking: { type: 'adaptive' },
         output_config: { effort: taskClass === 'simple' ? 'low' : taskClass === 'complex' ? 'high' : 'medium' },
-        system, messages: [{ role: 'user', content: prompt.trim() }],
+        system, messages: [...history, { role: 'user', content: prompt.trim() }],
       });
     } catch (error) {
       const retryable = [408, 429, 500, 502, 503, 504, 529].includes(error.status) ||
