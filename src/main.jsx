@@ -16,6 +16,32 @@ function Dialog({ title, onClose, children }) {
     <header><h2>{title}</h2><button className="icon-button" aria-label="Close dialog" autoFocus onClick={onClose}><X size={19}/></button></header>{children}
   </section></div>;
 }
+const platforms = [
+  ['wordpress','WordPress','Websites & publishing'],['wix','Wix','Website builder'],
+  ['shopify','Shopify','Online stores'],['google','Google Workspace','Email & business apps'],
+  ['microsoft','Microsoft 365','Business apps & collaboration'],['squarespace','Squarespace','Websites & commerce'],
+  ['zoho','Zoho','Business software'],['webflow','Webflow','Website builder'],
+  ['woocommerce','WooCommerce','Online stores'],['cpanel','cPanel','Hosting management'],
+  ['notion','Notion','Notes & workspaces'],['trello','Trello','Project management'],
+  ['hubspot','HubSpot','CRM & marketing'],['figma','Figma','Design & collaboration'],
+  ['quickbooks','QuickBooks','Business accounting'],['github','GitHub','Projects & repositories'],
+  ['stripe','Stripe','Payment management'],['zapier','Zapier','Connected workflows'],
+  ['asana','Asana','Team projects'],['zoom','Zoom','Meetings & collaboration']
+];
+function PlatformMarquee(){
+  return <section className="platform-showcase" aria-label="Example browser-based platforms">
+    <h3>Your tools. One workspace.</h3>
+    <p>Axel can assist with browser-based software, tools and platforms.</p>
+    <div className="logo-marquee" aria-label="Scrolling platform examples. Hover or focus to pause."><div className="logo-track">
+      {[0,1].map(copy=><div className="logo-group" role={copy===0?'list':undefined} aria-hidden={copy===1?true:undefined} key={copy}>
+        {platforms.map(([slug,name,detail])=><div className="platform-card" role={copy===0?'listitem':undefined} tabIndex={copy===0?0:undefined} title={name+' · '+detail+' · Example platform'} key={slug}>
+          {slug==='microsoft'?<span className="microsoft-logo" aria-hidden="true"><i/><i/><i/><i/></span>:<img src={'/assets/platforms/'+slug+'.svg'} alt="" width="38" height="38" loading="lazy"/>}<span>{name}</span>
+        </div>)}
+      </div>)}
+    </div></div>
+    <p className="platform-availability">Platform examples shown. Available actions depend on the platform and connected features.</p>
+  </section>
+}
 function PreviewPanel({ task, stage, onStage, compact }) {
   return <section className={'preview-panel '+(compact?'mobile-preview':'')} aria-label="Browser workspace">
     <div className="preview-heading"><div><span className="eyebrow">YOUR WORKSPACE</span><h2>See every step.</h2></div><span className="control-badge"><ShieldCheck size={14}/> You’re in control</span></div>
@@ -33,8 +59,8 @@ function PreviewPanel({ task, stage, onStage, compact }) {
         <div className="canvas-footer"><LockKeyhole size={12}/> Visual preview only. No live accounts connected.</div>
       </div>
     </div>
-    <div className="platform-row"><span>YOUR TOOLS, ONE PLACE</span><div><b className="wp">W</b> WordPress</div><div><b className="wix">WIX</b></div><div><b className="google">G</b> Google</div><div><b className="ms"><i/><i/><i/><i/></b> Microsoft</div><span className="more-tools">+ more</span></div>
-    <div className="preview-bottom"><ShieldCheck size={14}/><span>You review the change. Axel follows your lead.</span><span className="connection-label">Demo workspace</span></div>
+    <PlatformMarquee/>
+    <div className="sign-in-guidance"><span className="guidance-icon"><ShieldCheck size={24}/></span><div><strong>Secure sign-in. You stay in control.</strong><p>You’ll be asked to sign in to your own platform in the browser to make the updates you request. Never type passwords, verification codes or recovery codes in the chat request.</p></div></div>
   </section>;
 }
 function App(){
@@ -48,7 +74,7 @@ function App(){
   function selectSuggestion(s){setPrompt(s.prompt);input.current?.focus()}
   function changeStage(s){if(s==='review')openDialog('approval');else setStage(s)}
   return <div className="app-shell">
-    <header className="app-header"><a className="logo-link" href="/" aria-label="ITProGuy home"><img src="/assets/itproguy-logo.svg?v=react2" alt="ITProGuy by Axon 1Pro Group"/></a><div className="header-location"><span className="header-slash">/</span><span>Workspace</span><span className="beta-label">PREVIEW</span></div><div className="header-right"><span className="trial-pill"><span className="trial-icon"><Clock3 size={15}/></span><strong>30 min</strong><span>trial preview</span></span><button className="header-help" onClick={()=>openDialog('help')}><CircleHelp size={17}/><span>Help</span></button><button className="sign-in-button" onClick={()=>openDialog('signin')}>Sign in <ArrowUpRight size={15}/></button></div></header>
+    <header className="app-header"><a className="logo-link" href="/" aria-label="ITProGuy home"><img src="/assets/itproguy-logo.svg?v=readable1" alt="ITProGuy by Axon 1Pro Group"/></a><div className="header-location"><span className="header-slash">/</span><span>Workspace</span><span className="beta-label">PREVIEW</span></div><div className="header-right"><span className="trial-pill"><span className="trial-icon"><Clock3 size={15}/></span><strong>30 min</strong><span>trial preview</span></span><button className="header-help" onClick={()=>openDialog('help')}><CircleHelp size={17}/><span>Help</span></button><button className="sign-in-button" onClick={()=>openDialog('signin')}>Sign in <ArrowUpRight size={15}/></button></div></header>
     <div className="app-body"><nav className="nav-rail" aria-label="Workspace navigation"><button className="new-icon" title="New task" aria-label="New task" onClick={newTask}><Plus size={22}/></button><button className="rail-item active" title="Current task" aria-label="Current task" onClick={()=>{setShowPreview(false);input.current?.focus()}}><MessageSquare size={21}/><i/></button><button className="rail-item" title="Session history" aria-label="Session history" onClick={()=>openDialog('history')}><Clock3 size={21}/></button><div className="rail-spacer"/><button className="rail-item" title="Help and support" aria-label="Help and support" onClick={()=>openDialog('help')}><CircleHelp size={21}/></button><button className="guest-avatar" aria-label="Guest account" onClick={()=>openDialog('signin')}>G</button></nav>
     <main className="workspace-grid">
       <section className={'chat-panel '+(showPreview?'hide-on-mobile':'')} aria-label="Chat with Axel">
@@ -56,7 +82,7 @@ function App(){
         <div className={'conversation '+(activeTask?'has-task':'')} aria-live="polite">
           {activeTask?<div className="messages"><div className="user-message">{activeTask}</div><div className="assistant-message"><span className="message-mark"><Sparkles size={16}/></span><div><strong>Let’s take a look together.</strong><p>This is a workspace preview. In the live service, I’ll ask for the website or app, check the issue, and explain the next step before you approve anything.</p><span className="sample-note"><ShieldCheck size={12}/> No live action has been taken.</span></div></div><button className="inline-preview" onClick={()=>{setShowPreview(true);changeStage('review')}}>See how approval works <ArrowUpRight size={14}/></button></div>:<div className="welcome"><div className="welcome-avatar"><img src="/assets/axel-avatar.webp" alt="Meet Axel, your IT Pro Guy"/><span><Sparkles size={15}/></span></div><span className="welcome-kicker">MEET YOUR EVERYDAY IT SIDEKICK</span><h1>Hi, I’m Axel.<br/>What can I sort out for you?</h1><p>Tell me what you need. I’ll handle the technical bits,<br className="desktop-break"/> and keep you in the loop.</p><div className="suggestion-grid">{suggestions.map(s=><button className="suggestion" key={s.title} onClick={()=>selectSuggestion(s)}><span className="suggestion-icon"><s.icon size={17}/></span><div><strong>{s.title}</strong><small>{s.detail}</small></div><ArrowUpRight size={14} className="suggestion-arrow"/></button>)}</div></div>}
         </div>
-        <div className="composer-area"><form className="task-composer" onSubmit={submit}><label htmlFor="task-input">YOUR TASK, IN YOUR WORDS</label><textarea ref={input} id="task-input" value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Tell Axel what you’d like to do…&#10;&#10;A website update? An email problem? Something else?&#10;Start anywhere — no technical words needed."/><div className="composer-bottom"><span><ShieldCheck size={13}/> You approve every change</span><button className="send-button" type="submit" disabled={!prompt.trim()}><span>Let’s do this</span><ArrowUp size={18}/></button></div></form><div className="composer-caption"><span>Never enter passwords in this box.</span><button className="mobile-view-button" onClick={()=>setShowPreview(true)}><PanelRight size={13}/> Open workspace</button><span className="company-credit">By Axon 1Pro Group</span></div></div>
+        <div className="composer-area"><form className="task-composer" onSubmit={submit}><label htmlFor="task-input">YOUR TASK, IN YOUR WORDS</label><textarea ref={input} id="task-input" value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Tell Axel what you’d like to do…&#10;&#10;A website update? An email problem? Something else?&#10;Start anywhere — no technical words needed."/><div className="composer-bottom"><span><ShieldCheck size={13}/> You approve every change</span><button className="send-button" type="submit" disabled={!prompt.trim()}><span>Let’s do this</span><ArrowUp size={18}/></button></div></form><div className="composer-caption"><span>No passwords or verification codes in chat.</span><button className="mobile-view-button" onClick={()=>setShowPreview(true)}><PanelRight size={13}/> Open workspace</button><span className="company-credit">By Axon 1Pro Group</span></div></div>
       </section>
       <div className={'preview-wrapper '+(!showPreview?'hide-on-mobile':'')}><button className="mobile-back" onClick={()=>setShowPreview(false)}>← Back to Axel</button><PreviewPanel task={activeTask} stage={stage} onStage={changeStage} compact={showPreview}/></div>
     </main></div>
