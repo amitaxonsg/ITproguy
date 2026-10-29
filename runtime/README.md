@@ -29,3 +29,8 @@ The router and server source are staged privately on the German server and commi
 - Browser actions and image uploads remain disconnected. Responses are plain text, never executable HTML. The frontend labels the browser pane as a visual preview. Do not advertise completed website edits until a separately tested execution workflow exists.
 - Validate with `node claude-router.test.mjs` and `node server.test.mjs`. The latter verifies unauthenticated denial, origin rejection, owner login/cookie flags, image intent handling, daily limits, length limits and logout.
 - Before activation, save the current virtualhost and public index/assets under /srv/itproguy/backups. Validate Apache syntax before graceful reload. Rollback restores those files and stops only itproguy-api.service; it must not stop shared Apache or other services.
+
+
+## Verified integration checkpoint
+
+The owner API was exercised on the German server with an ephemeral local session: owner login → authenticated /api/axel → Claude Haiku → successful response. The temporary local test server then closed. Two server API tests and six router tests passed. Public API activation remains pending. A static review build is available at https://itproguy.com/preview/claude-owner/; it is not yet connected to a public API route. Current production HTML, assets and ITProGuy virtualhost were backed up under /srv/itproguy/backups/before-claude-owner. Apache syntax passed without a reload. No API key or owner code is included in these backups or Git.
