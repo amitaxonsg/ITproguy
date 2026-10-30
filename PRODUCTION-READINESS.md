@@ -41,5 +41,5 @@ Updated 30 October 2026. “Done” means directly verified; configured flags do
 - The Hire Axel dialog offers one-time packs; monthly renewal and checkout are disabled. It states that payment, invoices and automatic renewals are unavailable. Credits are shown as valid for 12 months. The dialog still displays an unverified 10% discount.
 - The signed-in owner UI displays 30 minutes of trial balance. No customer payment records exist.
 - The health endpoint currently reports `ok=true`, `emailLogin=true`, `google=true`, `microsoft=true`, `taskGuidance=true`, `browserActions=false`. Provider flags do not substitute for end-to-end OAuth verification.
-- The German Cockpit terminal currently requires a separate server-user login before more server changes or deployment can be made. The latest pushed repository commit is `66080ef` (“Remove future payment teaser copy”).
+- The German Cockpit terminal currently requires a separate server-user login before more server changes or deployment can be made. The latest feature-code commit is `66080ef`; the readiness checklist was updated in commit `c437551` (“Remove future payment teaser copy”).
 - Do not describe the service as production-ready or accept paid customer work until the open implementation gates and owner UAT are complete.
