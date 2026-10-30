@@ -75,7 +75,7 @@ export function createOAuth({accounts,env=process.env,now=Date.now}={}){
     if(typeof claims.sub!=='string'||!claims.sub||claims.sub.length>255)throw Error('OIDC_SUBJECT_INVALID');
     const email=provider==='google'?claims.email:(claims.email||claims.preferred_username);
     if(!isEmail(email))throw Error('OIDC_EMAIL_MISSING');
-    return {issuer,subject:claims.sub,email,name:typeof claims.name==='string'?claims.name:''};
+    return {issuer,subject:claims.sub,email,emailVerified:provider==='google'||claims.email_verified===true||claims.email_verified==='true',name:typeof claims.name==='string'?claims.name:''};
   }
   async function start(provider,req,res,url){
     if(!enabled(provider))return send(res,503,{error:'This sign-in provider is not configured.'});
@@ -110,7 +110,7 @@ export function createOAuth({accounts,env=process.env,now=Date.now}={}){
       const response=await fetch(cfg.token,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:data,signal:AbortSignal.timeout(10000)});
       if(!response.ok)return redirectError(res);
       const tokens=await response.json(),claims=await verifiedClaims(provider,tokens.id_token,flow);
-      const result=accounts.loginExternal({provider,issuer:claims.issuer,subject:claims.subject,email:claims.email,name:claims.name,linkUserId:flow.linkUserId});
+      const result=accounts.loginExternal({provider,issuer:claims.issuer,subject:claims.subject,email:claims.email,name:claims.name,emailVerified:claims.emailVerified,linkUserId:flow.linkUserId});
       const dest=new URL('/',SITE);dest.searchParams.set('auth',flow.linkUserId?'linked':'signed-in');
       res.writeHead(302,{Location:dest.toString(),'Set-Cookie':[cookie(result.token),stateCookie('')],'Cache-Control':'no-store'});res.end();
     }catch(error){
