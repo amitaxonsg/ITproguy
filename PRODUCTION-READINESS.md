@@ -37,7 +37,7 @@ Updated 30 October 2026. “Done” means directly verified; configured flags do
 ## Current customer-visible behavior
 
 - Sign-in is available for email, Google and Microsoft when provider values are configured. Email-code and Google OAuth have passed an owner-account sign-in check; Microsoft has not.
-- Text guidance is available. It does not change a live site/account. The current system still applies the limits listed above and does not deduct the displayed trial balance during the verified synthetic route.
+- Text guidance is available. It does not change a live site/account. The current system still applies the listed request and response limits. The verified synthetic route previously returned zero trial deduction; Amit has now confirmed guidance must consume trial or paid time. Metering is still pending.
 - The Hire Axel dialog offers one-time packs; monthly renewal and checkout are disabled. It states that payment, invoices and automatic renewals are unavailable. Credits are shown as valid for 12 months. The dialog still displays an unverified 10% discount.
 - The signed-in owner UI displays 30 minutes of trial balance. No customer payment records exist.
 - The health endpoint currently reports `ok=true`, `emailLogin=true`, `google=true`, `microsoft=true`, `taskGuidance=true`, `browserActions=false`. Provider flags do not substitute for end-to-end OAuth verification.
