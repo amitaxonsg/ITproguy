@@ -26,7 +26,7 @@ test('customer API provides bounded Axel guidance and records usage without dedu
   assert.equal(body.status,'complete');assert.equal(body.browserActions,false);assert.equal(body.trialDeductedSeconds,0);
   assert.equal(s.accounts.profile(s.loggedIn.user.id).trial_seconds,1800);
   assert.equal(s.accounts.db.prepare('SELECT status,model FROM usage').get().status,'complete');
-  assert.deepEqual(s.accounts.db.prepare('SELECT input_tokens,output_tokens,request_id FROM model_usage').get(),{input_tokens:12,output_tokens:20,request_id:'req-test'});
+  assert.deepEqual({...s.accounts.db.prepare('SELECT input_tokens,output_tokens,request_id FROM model_usage').get()},{input_tokens:12,output_tokens:20,request_id:'req-test'});
  }finally{s.accounts.close();await new Promise(resolve=>s.app.close(resolve))}
 });
 test('customer API enforces per-account daily request limit before model calls',async()=>{
