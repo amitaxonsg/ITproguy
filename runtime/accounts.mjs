@@ -57,5 +57,36 @@ export class Accounts {
       payments:this.db.prepare('SELECT id,amount_cents,currency,seconds,remaining_seconds,expires,status,receipt_url FROM purchases WHERE user_id=? ORDER BY expires DESC LIMIT 100').all(id),
       logins:this.db.prepare('SELECT provider,at FROM logins WHERE user_id=? ORDER BY id DESC LIMIT 20').all(id)};
   }
+  loginExternal({provider,issuer,subject,email,name='',linkUserId=null}){
+    if(!['google','microsoft'].includes(provider)||typeof issuer!=='string'||!issuer.startsWith('https://')||typeof subject!=='string'||!subject||subject.length>255)throw Error('INVALID_EXTERNAL_IDENTITY');
+    const normalized=this.email(email),displayName=typeof name==='string'?name.trim().slice(0,120):'';
+    const now=this.now();
+    this.db.exec('BEGIN IMMEDIATE');
+    try{
+      let identity=this.db.prepare('SELECT user_id FROM identities WHERE provider=? AND issuer=? AND subject=?').get(provider,issuer,subject);
+      let userId;
+      if(identity){
+        if(linkUserId&&identity.user_id!==linkUserId)throw Error('IDENTITY_IN_USE');
+        userId=identity.user_id;
+      }else if(linkUserId){
+        const account=this.db.prepare('SELECT id FROM users WHERE id=?').get(linkUserId);
+        if(!account)throw Error('ACCOUNT_LINK_REQUIRED');
+        this.db.prepare('INSERT INTO identities(provider,issuer,subject,user_id) VALUES(?,?,?,?)').run(provider,issuer,subject,linkUserId);
+        userId=linkUserId;
+      }else{
+        const existing=this.db.prepare('SELECT id FROM users WHERE email=?').get(normalized);
+        if(existing)throw Error('ACCOUNT_LINK_REQUIRED');
+        userId=randomBytes(16).toString('hex');
+        this.db.prepare('INSERT INTO users(id,email,name,created_at) VALUES(?,?,?,?)').run(userId,normalized,displayName,now);
+        this.db.prepare('INSERT INTO identities(provider,issuer,subject,user_id) VALUES(?,?,?,?)').run(provider,issuer,subject,userId);
+      }
+      this.db.prepare('UPDATE users SET first_login=COALESCE(first_login,?),last_login=? WHERE id=?').run(now,now,userId);
+      this.db.prepare('INSERT INTO logins(user_id,provider,at) VALUES(?,?,?)').run(userId,provider,now);
+      const token=randomBytes(32).toString('hex');
+      this.db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(this.hash(token),userId,now+86400000);
+      this.db.exec('COMMIT');
+      return {token,user:this.profile(userId)};
+    }catch(e){this.db.exec('ROLLBACK');throw e}
+  }
   close(){this.db.close()}
 }
