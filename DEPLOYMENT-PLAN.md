@@ -60,7 +60,7 @@ Only after the browser service is stable, consider a signed Windows/macOS helper
 
 ## Next phase
 
-Phase 1 is complete. A bounded subset of Phase 2 is now deployed: email-code, Google, and Microsoft customer sign-in with durable account/trial records. Customer task execution, customer-facing AI/API integration, billing, and live browser actions remain unavailable. Continue the production-readiness gates in `PRODUCTION-READINESS.md`. Domain email routing is also not configured; no MX/SPF/DKIM/DMARC records were added during the website deployment.
+Phase 1 is complete. A bounded subset of Phase 2 is now deployed: email-code, Google, and Microsoft customer sign-in with durable account/trial records. Customer text guidance is deployed and verified; customer browser execution, billing, and live browser actions remain unavailable. Continue the production-readiness gates in `PRODUCTION-READINESS.md`. Domain email routing is also not configured; no MX/SPF/DKIM/DMARC records were added during the website deployment.
 
 ## React workspace redesign — 30 October 2026
 
@@ -113,3 +113,13 @@ Phase 1 is complete. A bounded subset of Phase 2 is now deployed: email-code, Go
 - Provider authorization handshakes and actual email delivery have not been exercised; these remain for Amit's later UAT. Login availability is not customer task readiness: task execution remains disabled, live browser actions are false, and checkout is not connected.
 - German Cockpit session idle timeout was already configured to 60 minutes. This is separate from customer account session duration.
 - Current gate matrix: `PRODUCTION-READINESS.md`.
+
+
+## Bounded customer AI guidance — 31 October 2026
+
+- Connected the customer API to the server-side Claude router. The route uses one Haiku model, a 4,096-token response cap, zero SDK retries, and no model fallback.
+- Added a 10-request global / 3-request per-account UTC-day limit and a token/request-ID usage table. Prompts are not stored; no maintenance-hour credit is deducted.
+- Updated the UI to say Axel is preparing guidance and to state that no live account change or trial deduction occurred.
+- All 13 account/router/customer API tests passed in the private runtime staging directory. One synthetic customer-route request completed with Claude Haiku. Production health reports `taskGuidance:true` and `browserActions:false`.
+- Backup: `/srv/itproguy/backups/pre-customer-ai-20261031`. Rollback: restore the backed-up `customer-server.mjs`, `claude-router.mjs`, and public `index.html`, then restart only `itproguy-api.service`. Retain the new versioned assets; the restored HTML will stop referencing them.
+- Actual Google/Microsoft OAuth and email delivery remain for Amit's UAT. Browser execution, approvals, billing, and remaining gates are still pending.
