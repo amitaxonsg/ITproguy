@@ -9,7 +9,7 @@
   "scripts": {
     "check": "node readiness.mjs",
     "browser:install": "playwright install chromium",
-    "test": "node claude-router.test.mjs"
+    "test": "node --experimental-test-isolation=none --test accounts.test.mjs claude-router.test.mjs customer-server.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.3.0",
