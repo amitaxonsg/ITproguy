@@ -59,14 +59,14 @@ export function createCustomerApp({
   let usageId=null;
   try{
    const path=req.url?.split('?')[0]||'/';
-   const token=(req.headers.cookie||'').match(/(?:^|;\\s*)__Host-axel=([a-f0-9]{64})(?:;|$)/)?.[1];
+   const token=(req.headers.cookie||'').match(/(?:^|;\s*)__Host-axel=([a-f0-9]{64})(?:;|$)/)?.[1];
    const user=accounts.session(token);
    if(req.method==='GET'&&path==='/api/session')return send(res,200,{user});
    if(req.method==='GET'&&path==='/api/health')return send(res,200,{ok:true,emailLogin:Boolean(mailToken),taskGuidance:Boolean(aiClient),...oauth.health(),browserActions:false});
    if(req.method==='GET'&&await oauth.handle(req,res,path))return;
    if(req.method==='GET'&&path==='/api/profile')return send(user?200:401,user?{user}:{error:'Sign in first.'});
    if(req.method!=='POST')return send(res,404,{error:'Not found.'});
-   if(!origins.has(req.headers.origin)||!/^application\\/json(?:;|$)/.test(req.headers['content-type']||''))return send(res,403,{error:'Request origin not allowed.'});
+   if(!origins.has(req.headers.origin)||!/^application\/json(?:;|$)/.test(req.headers['content-type']||''))return send(res,403,{error:'Request origin not allowed.'});
    const data=await readBody(req);
    if(path==='/api/otp/request'){
     if(now()-windowStart>3600000){windowStart=now();requests=0}
