@@ -32,8 +32,9 @@ export function createOAuth({accounts,env=process.env,now=Date.now}={}){
   const enabled=provider=>Boolean(providers[provider]?.id&&providers[provider]?.secret);
   const health=()=>({google:enabled('google'),microsoft:enabled('microsoft')});
   const send=(res,status,data,headers={})=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers});res.end(JSON.stringify(data))};
-  const redirectError=(res,reason='oauth_failed')=>{const url=new URL('/',SITE);url.searchParams.set('auth_error',reason);res.writeHead(302,{Location:url.toString(),'Cache-Control':'no-store'});res.end()};
+  const redirectError=(res,reason='oauth_failed')=>{const url=new URL('/',SITE);url.searchParams.set('auth_error',reason);res.writeHead(302,{Location:url.toString(),'Set-Cookie':stateCookie(''),'Cache-Control':'no-store'});res.end()};
   const cookieValue=req=>(req.headers.cookie||'').match(/(?:^|;\s*)__Host-axel=([a-f0-9]{64})(?:;|$)/)?.[1]||null;
+  const stateCookieValue=req=>(req.headers.cookie||'').match(/(?:^|;\s*)__Host-axel-oauth=([A-Za-z0-9_-]{43})(?:;|$)/)?.[1]||null;
 
   async function getKeys(provider,force=false){
     const cfg=providers[provider],cached=keys.get(provider);
