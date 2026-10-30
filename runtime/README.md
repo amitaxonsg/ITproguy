@@ -37,13 +37,20 @@ The owner API was exercised on the German server with an ephemeral local session
 
 ## Google and Microsoft customer sign-in
 
-The customer API accepts Google and Microsoft OpenID Connect sign-in with authorization code flow, PKCE, state, nonce, issuer/audience/time/signature checks, and secure HTTP-only sessions. Only `openid email profile` is requested; no Gmail, Drive, Outlook, Graph, or other API access is requested.
+The customer API is deployed with Google and Microsoft OpenID Connect authorization-code flow, PKCE, state, nonce, issuer/audience/time/signature checks, and secure HTTP-only sessions. Live provider handshakes still require UAT. Sign-in is not evidence that paid task execution is ready. Only `openid email profile` is requested; no Gmail, Drive, Outlook, Graph, or other API access is requested.
 
 Register these exact web redirect URIs:
 
 - Google: `https://itproguy.com/api/auth/google/callback`
 - Microsoft: `https://itproguy.com/api/auth/microsoft/callback`
 
-Google sign-in requires a verified Google email. Microsoft sign-in is limited to organizational accounts and uses tenant-specific issuer validation. Existing email-only accounts are never automatically joined to a provider identity; sign in by email first and explicitly connect Google/Microsoft from the account dialog.
+Google sign-in requires a verified Google email. Microsoft sign-in is limited to organizational accounts and uses tenant-specific issuer validation. A verified Google email can securely match and return an existing email account, preserving its balances. Microsoft claims may not include a verified-email flag; when verification is unavailable, sign in by email and explicitly connect Microsoft from the account dialog. Never join accounts on an unverified email.
 
 Store the four OAuth values from `oauth.env.example` only in `/srv/itproguy/private/auth.env`, owned by the service account and mode 600. Restart only the customer API service after installing the values. The health endpoint reports provider login as enabled only when both the client ID and secret are configured.
+
+## Production-readiness checkpoint — 30 October 2026
+
+- The public customer API now supports email one-time-code, Google, and Microsoft sign-in. Account logic preserves balances for returning users; verified Google email can link to an existing email account. Microsoft may require email sign-in followed by explicit provider linking when its verified-email claim is absent.
+- The live health endpoint reported all three login methods enabled after deployment. Automated account tests passed 4/4. Real Google/Microsoft handshakes and inbox delivery remain unverified and are reserved for Amit's UAT.
+- Customer task execution intentionally returns a clear unavailable response. The owner-only Claude preview API is separate and is not activated for customer requests. Browser actions remain disabled.
+- Stripe checkout, recurring billing, invoices/refunds, admin controls, support/legal pages, monitoring/restore drills, and end-to-end customer email/provider tests remain open. See `PRODUCTION-READINESS.md` for the current gate list.
