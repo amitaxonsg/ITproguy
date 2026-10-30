@@ -57,7 +57,7 @@ export class Accounts {
       payments:this.db.prepare('SELECT id,amount_cents,currency,seconds,remaining_seconds,expires,status,receipt_url FROM purchases WHERE user_id=? ORDER BY expires DESC LIMIT 100').all(id),
       logins:this.db.prepare('SELECT provider,at FROM logins WHERE user_id=? ORDER BY id DESC LIMIT 20').all(id)};
   }
-  loginExternal({provider,issuer,subject,email,name='',linkUserId=null}){
+  loginExternal({provider,issuer,subject,email,name='',emailVerified=false,linkUserId=null}){
     if(!['google','microsoft'].includes(provider)||typeof issuer!=='string'||!issuer.startsWith('https://')||typeof subject!=='string'||!subject||subject.length>255)throw Error('INVALID_EXTERNAL_IDENTITY');
     const normalized=this.email(email),displayName=typeof name==='string'?name.trim().slice(0,120):'';
     const now=this.now();
@@ -75,10 +75,15 @@ export class Accounts {
         userId=linkUserId;
       }else{
         const existing=this.db.prepare('SELECT id FROM users WHERE email=?').get(normalized);
-        if(existing)throw Error('ACCOUNT_LINK_REQUIRED');
-        userId=randomBytes(16).toString('hex');
-        this.db.prepare('INSERT INTO users(id,email,name,created_at) VALUES(?,?,?,?)').run(userId,normalized,displayName,now);
-        this.db.prepare('INSERT INTO identities(provider,issuer,subject,user_id) VALUES(?,?,?,?)').run(provider,issuer,subject,userId);
+        if(existing){
+          if(emailVerified!==true)throw Error('ACCOUNT_LINK_REQUIRED');
+          userId=existing.id;
+          this.db.prepare('INSERT INTO identities(provider,issuer,subject,user_id) VALUES(?,?,?,?)').run(provider,issuer,subject,userId);
+        }else{
+          userId=randomBytes(16).toString('hex');
+          this.db.prepare('INSERT INTO users(id,email,name,created_at) VALUES(?,?,?,?)').run(userId,normalized,displayName,now);
+          this.db.prepare('INSERT INTO identities(provider,issuer,subject,user_id) VALUES(?,?,?,?)').run(provider,issuer,subject,userId);
+        }
       }
       this.db.prepare('UPDATE users SET first_login=COALESCE(first_login,?),last_login=? WHERE id=?').run(now,now,userId);
       this.db.prepare('INSERT INTO logins(user_id,provider,at) VALUES(?,?,?)').run(userId,provider,now);
