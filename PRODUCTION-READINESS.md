@@ -22,7 +22,7 @@ Updated 30 October 2026. This register separates deployed code from end-to-end e
 
 ## Not implemented or not launch-ready
 
-- [ ] Customer AI task execution: customer API currently returns an unavailable response. The owner-only Claude preview API is not a customer endpoint.
+- [ ] Customer AI guidance API is implemented in source with a 10-request global/3-request per-account daily cap and token usage records; deployment and a live response check are pending. It does not perform browser actions or deduct maintenance-hour balances. The owner-only Claude preview API remains separate.
 - [ ] Live isolated browser workflow, visible browser transport, platform allowlist, approval enforcement, audit record, and rollback/recovery.
 - [ ] Stripe checkout, webhook verification, idempotent fulfillment, refunds, invoices/tax handling, and monthly auto-top-up cancellation.
 - [ ] Durable credit metering/deduction, expiry, usage receipts, and per-customer/model spend limits.
