@@ -12,6 +12,6 @@ Do not generate images or route requests to image-generation services. For image
 
 ## Installation checkpoint
 
-The ITProGuy-specific AppArmor rule was loaded with user approval. Browser binaries and parent application directories were protected against replacement by the app user. The readiness test passed with `chromiumSandbox: true` as axonadmin: isolated context and page verified. Global namespace settings were unchanged. No model API calls were made.
+The ITProGuy-specific AppArmor rule was loaded with user approval. Browser binaries and parent application directories were protected against replacement by the app user. The readiness test passed with `chromiumSandbox: true` as axonadmin: isolated context and page verified. Global namespace settings were unchanged. No model API calls were made during that readiness check. The Claude runtime and protected API key were later verified; the owner-only preview API remains separate from the customer API.
 
-Installation of `@anthropic-ai/sdk` was started through the server terminal, but the console session expired before its outcome could be verified. Verify the installed package/version before treating Claude as ready. The existing Gemini SDK is not the selected provider. No API key has been configured by this setup. The public site remains a prototype; this policy must be loaded and enforced by the future backend before customer use.
+The public customer sign-in API is deployed, but it does not currently connect customer requests to Claude or execute browser actions. Keep this policy enforced by the backend before enabling customer task execution. Never infer live task capability from successful sign-in.
