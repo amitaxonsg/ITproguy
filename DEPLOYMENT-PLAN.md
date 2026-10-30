@@ -60,7 +60,7 @@ Only after the browser service is stable, consider a signed Windows/macOS helper
 
 ## Next phase
 
-Phase 1 is complete. Customer accounts, AI/API integration, billing, and live browser actions remain unconfigured. Continue with Phase 2 as a separate, bounded change set. Domain email routing is also not configured; no MX/SPF/DKIM/DMARC records were added during the website deployment.
+Phase 1 is complete. A bounded subset of Phase 2 is now deployed: email-code, Google, and Microsoft customer sign-in with durable account/trial records. Customer task execution, customer-facing AI/API integration, billing, and live browser actions remain unavailable. Continue the production-readiness gates in `PRODUCTION-READINESS.md`. Domain email routing is also not configured; no MX/SPF/DKIM/DMARC records were added during the website deployment.
 
 ## React workspace redesign — 30 October 2026
 
@@ -104,3 +104,12 @@ Phase 1 is complete. Customer accounts, AI/API integration, billing, and live br
 - Exact-path AppArmor draft prepared at `runtime/itproguy-chromium.apparmor.example` in Git and `/srv/itproguy/runtime/itproguy-chromium.apparmor` on host. Parsing checked with skip-kernel-load; no policy enabled. Explicit approval needed before root-level installation, loading, and protecting binary paths against replacement.
 - Did not use --no-sandbox, change global sysctl/firewall/Apache/package settings, or start a public API/browser agent. Existing ITProGuy homepage still returned HTTP 200.
 - Next: approve the scoped sandbox exception, re-test browser, then securely configure the Gemini key and authenticated/cost-controlled application backend. A key alone will not make the current frontend live.
+
+
+## Customer sign-in deployment — 30 October 2026
+
+- Added email one-time-code, Google, and Microsoft sign-in to the customer API and deployed the matching frontend. Returning accounts retain their existing trial and paid balances. Verified Google identity can match an existing email account; Microsoft may require explicit linking if its verified-email claim is absent.
+- Production build completed, API service restarted, and live health reported email login, Google, and Microsoft enabled. Account tests passed 4/4 for account reuse, balance preservation, single-use/expiry behavior, and rejecting unverified account linking.
+- Provider authorization handshakes and actual email delivery have not been exercised; these remain for Amit's later UAT. Login availability is not customer task readiness: task execution remains disabled, live browser actions are false, and checkout is not connected.
+- German Cockpit session idle timeout was already configured to 60 minutes. This is separate from customer account session duration.
+- Current gate matrix: `PRODUCTION-READINESS.md`.
