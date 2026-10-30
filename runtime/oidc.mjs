@@ -5,8 +5,9 @@ const CALLBACKS={
   google:SITE+'/api/auth/google/callback',
   microsoft:SITE+'/api/auth/microsoft/callback'
 };
-const COOKIE='__Host-axel';
+const COOKIE='__Host-axel',STATE_COOKIE='__Host-axel-oauth';
 const cookie=value=>COOKIE+'='+value+'; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age='+(value?86400:0);
+const stateCookie=value=>STATE_COOKIE+'='+value+'; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age='+(value?600:0);
 const b64json=value=>JSON.parse(Buffer.from(value,'base64url').toString('utf8'));
 const isEmail=value=>typeof value==='string'&&value.length<=254&&!/^\s*@|@\s|\s/.test(value)&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
@@ -78,28 +79,30 @@ export function createOAuth({accounts,env=process.env,now=Date.now}={}){
   async function start(provider,req,res,url){
     if(!enabled(provider))return send(res,503,{error:'This sign-in provider is not configured.'});
     const mode=url.searchParams.get('mode')==='link'?'link':'login';
-    let linkUserId=null;
+    let linkUserId=null,linkSessionToken=null;
     if(mode==='link'){
-      const current=accounts.session(cookieValue(req));
+      linkSessionToken=cookieValue(req);
+      const current=accounts.session(linkSessionToken);
       if(!current)return send(res,401,{error:'Sign in before connecting an account.'});
       linkUserId=current.id;
     }
     for(const [key,value] of flows)if(value.createdAt<now()-600000)flows.delete(key);
     if(flows.size>=500)return send(res,429,{error:'Too many sign-in attempts. Try again shortly.'});
     const state=randomBytes(32).toString('base64url'),nonce=randomBytes(32).toString('base64url'),verifier=randomBytes(32).toString('base64url');
-    flows.set(state,{provider,nonce,verifier,linkUserId,createdAt:now()});
+    flows.set(state,{provider,nonce,verifier,linkUserId,linkSessionToken,createdAt:now()});
     const challenge=createHash('sha256').update(verifier).digest('base64url');
     const cfg=providers[provider],target=new URL(cfg.authorize);
     for(const [key,value] of Object.entries({client_id:cfg.id,redirect_uri:CALLBACKS[provider],response_type:'code',response_mode:'query',scope:cfg.scope,state,nonce,code_challenge:challenge,code_challenge_method:'S256',prompt:'select_account'}))target.searchParams.set(key,value);
-    res.writeHead(302,{Location:target.toString(),'Cache-Control':'no-store'});res.end();
+    res.writeHead(302,{Location:target.toString(),'Set-Cookie':stateCookie(state),'Cache-Control':'no-store'});res.end();
   }
   async function callback(provider,req,res,url){
     if(!enabled(provider))return send(res,503,{error:'This sign-in provider is not configured.'});
     const state=url.searchParams.get('state')||'',flow=flows.get(state);
     if(!flow||flow.provider!==provider||flow.createdAt<now()-600000){if(flow)flows.delete(state);return redirectError(res)}
     flows.delete(state);
+    if(stateCookieValue(req)!==state)return redirectError(res);
     if(url.searchParams.has('error')||!url.searchParams.get('code'))return redirectError(res);
-    if(flow.linkUserId){const current=accounts.session(cookieValue(req));if(!current||current.id!==flow.linkUserId)return redirectError(res,'account_link_required')}
+    if(flow.linkUserId){const current=accounts.session(flow.linkSessionToken);if(!current||current.id!==flow.linkUserId)return redirectError(res,'account_link_required')}
     const cfg=providers[provider];
     try{
       const data=new URLSearchParams({client_id:cfg.id,client_secret:cfg.secret,code:url.searchParams.get('code'),redirect_uri:CALLBACKS[provider],grant_type:'authorization_code',code_verifier:flow.verifier});
@@ -108,7 +111,7 @@ export function createOAuth({accounts,env=process.env,now=Date.now}={}){
       const tokens=await response.json(),claims=await verifiedClaims(provider,tokens.id_token,flow);
       const result=accounts.loginExternal({provider,issuer:claims.issuer,subject:claims.subject,email:claims.email,name:claims.name,linkUserId:flow.linkUserId});
       const dest=new URL('/',SITE);dest.searchParams.set('auth',flow.linkUserId?'linked':'signed-in');
-      res.writeHead(302,{Location:dest.toString(),'Set-Cookie':cookie(result.token),'Cache-Control':'no-store'});res.end();
+      res.writeHead(302,{Location:dest.toString(),'Set-Cookie':[cookie(result.token),stateCookie('')],'Cache-Control':'no-store'});res.end();
     }catch(error){
       const reason=error.message==='ACCOUNT_LINK_REQUIRED'?'account_link_required':error.message==='IDENTITY_IN_USE'?'identity_in_use':'oauth_failed';
       redirectError(res,reason);
