@@ -52,7 +52,7 @@ Store the four OAuth values from `oauth.env.example` only in `/srv/itproguy/priv
 
 - The public customer API now supports email one-time-code, Google, and Microsoft sign-in. Account logic preserves balances for returning users; verified Google email can link to an existing email account. Microsoft may require email sign-in followed by explicit provider linking when its verified-email claim is absent.
 - The live health endpoint reported all three login methods enabled after deployment. Automated account tests passed 4/4. Real Google/Microsoft handshakes and inbox delivery remain unverified and are reserved for Amit's UAT.
-- Customer task execution intentionally returns a clear unavailable response. The owner-only Claude preview API is separate and is not activated for customer requests. Browser actions remain disabled.
+- Customer text guidance is now connected through the customer API. It is bounded to 10 total and 3 per account per UTC day, uses Haiku with a 4,096-token output cap and no fallback, and logs token counts without retaining prompts. It does not execute browser actions or deduct task credits; browser actions remain disabled.
 - Stripe checkout, recurring billing, invoices/refunds, admin controls, support/legal pages, monitoring/restore drills, and end-to-end customer email/provider tests remain open. See `PRODUCTION-READINESS.md` for the current gate list.
 
 
@@ -60,4 +60,9 @@ Store the four OAuth values from `oauth.env.example` only in `/srv/itproguy/priv
 
 The customer API now includes a text-guidance route through the existing Claude router. It uses the server-only Claude key, Haiku by default, a 4,096-token response cap, no fallback model, and no execution tools. The first release is bounded to 10 requests per UTC day across the service and 3 per account. Each request is recorded without storing the prompt; model token counts and the provider request ID are stored separately. Guidance requests do not deduct maintenance-hour trial or paid balances. The API reports `browserActions:false`; no site or account changes are made by this route.
 
-Before deploying, run `npm test` from `/srv/itproguy/runtime`. After deploying, verify the configured key without printing it, run one owner-authorized live response check, and confirm health reports `taskGuidance:true`. Provider login UAT remains separate and is deferred to Amit.
+Deployment verified 31 October 2026: all 13 account/router/customer API tests passed, live health reports `taskGuidance:true`, and one synthetic customer-route request completed with Claude Haiku. Provider login/email UAT remains separate and is deferred to Amit.
+
+
+## Customer guidance deployment — 31 October 2026
+
+The customer route was deployed to `/srv/itproguy/runtime/customer-server.mjs`; only `itproguy-api.service` was restarted. Versioned frontend assets `app-customer-ai-1283c8e.js` and `.css` are live. A scoped rollback copy is under `/srv/itproguy/backups/pre-customer-ai-20261031`. Health reports email, Google, Microsoft, and task guidance enabled; browser actions remain disabled. The synthetic API smoke test used an in-memory account and did not touch a customer account or trial balance.
