@@ -34,3 +34,16 @@ The router and server source are staged privately on the German server and commi
 ## Verified integration checkpoint
 
 The owner API was exercised on the German server with an ephemeral local session: owner login → authenticated /api/axel → Claude Haiku → successful response. The temporary local test server then closed. Two server API tests and six router tests passed. Public API activation remains pending. A static review build is available at https://itproguy.com/preview/claude-owner/; it is not yet connected to a public API route. Current production HTML, assets and ITProGuy virtualhost were backed up under /srv/itproguy/backups/before-claude-owner. No production Apache configuration was changed or reloaded. No API key or owner code is included in these backups or Git.
+
+## Google and Microsoft customer sign-in
+
+The customer API accepts Google and Microsoft OpenID Connect sign-in with authorization code flow, PKCE, state, nonce, issuer/audience/time/signature checks, and secure HTTP-only sessions. Only `openid email profile` is requested; no Gmail, Drive, Outlook, Graph, or other API access is requested.
+
+Register these exact web redirect URIs:
+
+- Google: `https://itproguy.com/api/auth/google/callback`
+- Microsoft: `https://itproguy.com/api/auth/microsoft/callback`
+
+Google sign-in requires a verified Google email. Microsoft sign-in is limited to organizational accounts and uses tenant-specific issuer validation. Existing email-only accounts are never automatically joined to a provider identity; sign in by email first and explicitly connect Google/Microsoft from the account dialog.
+
+Store the four OAuth values from `oauth.env.example` only in `/srv/itproguy/private/auth.env`, owned by the service account and mode 600. Restart only the customer API service after installing the values. The health endpoint reports provider login as enabled only when both the client ID and secret are configured.
