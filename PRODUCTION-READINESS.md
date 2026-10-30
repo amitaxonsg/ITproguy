@@ -22,7 +22,7 @@ Updated 30 October 2026. This register separates deployed code from end-to-end e
 
 ## Not implemented or not launch-ready
 
-- [ ] Customer AI guidance API is implemented in source with a 10-request global/3-request per-account daily cap and token usage records; deployment and a live response check are pending. It does not perform browser actions or deduct maintenance-hour balances. The owner-only Claude preview API remains separate.
+- [x] Customer Claude text-guidance API deployed and verified with one synthetic live request. Server-only key; Haiku, 4,096-token response cap, no fallback, 10 requests globally and 3 per account per UTC day, token/request-ID logging without prompt storage. No browser actions or trial/paid-time deduction.
 - [ ] Live isolated browser workflow, visible browser transport, platform allowlist, approval enforcement, audit record, and rollback/recovery.
 - [ ] Stripe checkout, webhook verification, idempotent fulfillment, refunds, invoices/tax handling, and monthly auto-top-up cancellation.
 - [ ] Durable credit metering/deduction, expiry, usage receipts, and per-customer/model spend limits.
@@ -44,6 +44,6 @@ Updated 30 October 2026. This register separates deployed code from end-to-end e
 ## Current customer-visible behavior
 
 - Sign-in is available for email, Google and Microsoft when the corresponding provider values are configured.
-- Customer task requests are not executed and do not deduct trial time while the customer API reports the feature unavailable.
+- Customer task requests receive Claude text guidance. The API does not change a live site/account and does not deduct trial or paid time; browser actions remain disabled.
 - Checkout is disabled. The website remains an owner preview rather than a public paid production service.
 - The site health endpoint reports service/provider configuration; it does not verify a completed OAuth or email-delivery transaction.
