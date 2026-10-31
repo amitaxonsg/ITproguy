@@ -6,6 +6,7 @@ import {Accounts} from './accounts.mjs';
 import {sendOtp} from './mail.mjs';
 import {createOAuth} from './oidc.mjs';
 import {askAxel,createClient} from './claude-router.mjs';
+import {BrowserRuntime,parseBrowserNavigation} from './browser-runtime.mjs';
 
 const origins=new Set(['https://itproguy.com','https://www.itproguy.com']);
 const cookie=t=>`__Host-axel=${t}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=${t?86400:0}`;
@@ -16,6 +17,7 @@ export function createCustomerApp({
  mailToken=process.env.MAILTRAP_API_TOKEN,
  mailSender=sendOtp,
  aiClient=null,
+  browserRuntime=new BrowserRuntime(),
  ask=askAxel,
  now=Date.now
 }={}) {
@@ -78,7 +80,7 @@ return http.createServer(async(req,res)=>{
    const user=accounts.session(token); const adminEmail='amit@axon.com.sg'; const isAdmin=!!user&&String(user.email||'').toLowerCase()===adminEmail; if(req.method==='GET'&&path==='/api/admin/overview'){ if(!user)return send(res,401,{error:'Sign in first.'}); if(!isAdmin)return send(res,403,{error:'Admin access required.'}); const db=accounts.db; db.exec('CREATE TABLE IF NOT EXISTS admin_audit(id INTEGER PRIMARY KEY,actor_email TEXT NOT NULL,action TEXT NOT NULL,target_id TEXT,at INTEGER NOT NULL)'); const timestamp=now(); db.prepare('INSERT INTO admin_audit(actor_email,action,target_id,at) VALUES(?,?,?,?)').run(adminEmail,'view_overview',null,timestamp); const totals={users:db.prepare('SELECT COUNT(*) n FROM users').get().n,purchases:db.prepare('SELECT COUNT(*) n FROM purchases').get().n,pendingRequests:db.prepare("SELECT COUNT(*) n FROM requests WHERE status='pending'").get().n}; const users=db.prepare('SELECT id,email,name,created_at,first_login,last_login,trial_seconds,account_status FROM users ORDER BY created_at DESC LIMIT 500').all(); const logins=db.prepare('SELECT l.user_id,u.email,l.provider,l.at FROM logins l JOIN users u ON u.id=l.user_id ORDER BY l.at DESC LIMIT 200').all(); const purchases=db.prepare('SELECT p.id,p.user_id,u.email,p.amount_cents,p.currency,p.seconds,p.remaining_seconds,p.expires,p.status,p.receipt_url FROM purchases p JOIN users u ON u.id=p.user_id ORDER BY p.id DESC LIMIT 200').all().map(x=>({...x,receipt_url:typeof x.receipt_url==='string'&&x.receipt_url.startsWith('https://')?x.receipt_url:null})); const requests=db.prepare('SELECT r.id,r.user_id,u.email,r.kind,r.reason,r.details,r.status,r.created_at FROM requests r JOIN users u ON u.id=r.user_id ORDER BY r.created_at DESC LIMIT 200').all(); const audit=db.prepare('SELECT id,actor_email,action,target_id,at FROM admin_audit ORDER BY at DESC LIMIT 100').all(); const usage=db.prepare('SELECT u.id,u.user_id,x.email,u.seconds,u.model,u.status,u.at,mu.input_tokens,mu.output_tokens FROM usage u JOIN users x ON x.id=u.user_id LEFT JOIN model_usage mu ON mu.usage_id=u.id ORDER BY u.at DESC LIMIT 200').all(); return send(res,200,{totals,users,logins,purchases,requests,audit,usage}); }
    if(req.method==='GET'&&path==='/api/session')return send(res,200,{user});
 if(req.method==='GET'&&path==='/api/account'){if(!user)return send(res,401,{error:'Sign in first.'});const db=accounts.db;const usage=db.prepare('SELECT u.id,u.seconds,u.model,u.status,u.at,mu.input_tokens,mu.output_tokens FROM usage u LEFT JOIN model_usage mu ON mu.usage_id=u.id WHERE u.user_id=? ORDER BY u.at DESC LIMIT 100').all(user.id);const logins=db.prepare('SELECT provider,at FROM logins WHERE user_id=? ORDER BY at DESC LIMIT 100').all(user.id);const purchases=db.prepare('SELECT amount_cents,currency,seconds,remaining_seconds,expires,status,receipt_url FROM purchases WHERE user_id=? ORDER BY id DESC LIMIT 100').all(user.id).map(x=>({...x,receipt_url:typeof x.receipt_url==='string'&&x.receipt_url.startsWith('https://')?x.receipt_url:null}));const reviewRequests=db.prepare('SELECT id,kind,reason,status,created_at FROM requests WHERE user_id=? ORDER BY created_at DESC LIMIT 30').all(user.id);return send(res,200,{account:user,usage,logins,purchases,reviewRequests});}
-   if(req.method==='GET'&&path==='/api/health')return send(res,200,{ok:true,emailLogin:Boolean(mailToken),taskGuidance:Boolean(aiClient),...oauth.health(),browserActions:false});
+   if(req.method==='GET'&&path==='/api/health')return send(res,200,{ok:true,emailLogin:Boolean(mailToken),taskGuidance:Boolean(aiClient),...oauth.health(),browserActions:browserRuntime.available()});
    if(req.method==='GET'&&await oauth.handle(req,res,path))return;
    if(req.method==='GET'&&path==='/api/profile'){if(!user)return send(res,401,{error:'Sign in first.'});const avatar_data=accounts.db.prepare('SELECT avatar_data FROM user_profiles WHERE user_id=?').get(user.id)?.avatar_data||null;return send(res,200,{user,avatar_data});}
    if(req.method!=='POST')return send(res,404,{error:'Not found.'});
@@ -103,15 +105,15 @@ if(req.method==='GET'&&path==='/api/account'){if(!user)return send(res,401,{erro
 
    if(path==='/api/axel'){if(user.account_status==='under_review')return send(res,403,{error:'Your account is under review. You can still view account activity and contact support.'});if(user.account_status==='suspended')return send(res,403,{error:'Guidance is paused for this account. Please contact support for a review.'});
     if(typeof data.prompt!=='string'||!data.prompt.trim())return send(res,400,{error:'Enter a task.'});
-    if(!aiClient)return send(res,503,{error:'Axel guidance is temporarily unavailable. No work time was deducted.'});
+    const browserTarget=parseBrowserNavigation(data.prompt);if(browserTarget&&!browserRuntime.available())return send(res,503,{error:'The browser service is not ready. No work time was deducted.'});if(!aiClient&&!browserTarget)return send(res,503,{error:'Axel guidance is temporarily unavailable. No work time was deducted.'});
     if(busyUsers.has(user.id))return send(res,429,{error:'Axel is finishing your previous request. Please try again shortly.'});
     usageId=reserveUsage(user.id);
     if(usageId===null)return send(res,402,{error:'No guidance time is available. Checkout is currently disabled; contact support to add time.'});
     busyUsers.add(user.id);
     const startedAt=Date.now();
 try{
-     const result=await ask({prompt:data.prompt,history:[],taskClass:'simple',intent:'it_task',allowFallback:false},aiClient);
-     const metering=finishUsage(usageId,{status:result.status,model:result.model,attempts:result.attempts||[],elapsedSeconds:Math.max(1,Math.ceil((Date.now()-startedAt)/1000))});return send(res,200,{status:result.status,text:result.text,model:result.model,browserActions:false,...metering});
+     if(browserTarget){const browser=await browserRuntime.open(user.id,browserTarget);const metering=finishUsage(usageId,{status:'complete',model:'browser-navigation',attempts:[],elapsedSeconds:Math.max(1,Math.ceil((Date.now()-startedAt)/1000))});const host=new URL(browser.url).hostname;return send(res,200,{status:'complete',text:'Opened '+host+' in Axel’s private browser. This session can view public pages; it is not signed in and cannot change external accounts.',model:'browser-navigation',browserActions:true,browser,...metering});}const result=await ask({prompt:data.prompt,history:[],taskClass:'simple',intent:'it_task',allowFallback:false},aiClient);
+     const metering=finishUsage(usageId,{status:result.status,model:result.model,attempts:result.attempts||[],elapsedSeconds:Math.max(1,Math.ceil((Date.now()-startedAt)/1000))});return send(res,200,{status:result.status,text:result.text,model:result.model,browserActions:browserRuntime.available(),...metering});
     }catch(e){
      finishUsage(usageId,{status:'failed',attempts:[]});
      throw e;
@@ -123,7 +125,7 @@ try{
    const invalid=['TOO_LARGE','SyntaxError'].includes(e.message)||e instanceof SyntaxError;
    const status=known.includes(e.message)||invalid?400:503;
    send(res,status,{error:known.includes(e.message)?e.message.replaceAll('_',' ').toLowerCase():invalid?'Invalid request.':'Unable to complete this request. Please try again later.'});
-   console.error(JSON.stringify({event:'customer_request_failed',code:status===400?'INVALID_REQUEST':'SERVICE_ERROR'}));
+   console.error(JSON.stringify({event:'customer_request_failed',code:status===400?'INVALID_REQUEST':'SERVICE_ERROR',errorType:typeof e?.name==='string'?e.name:'Error',reason:typeof e?.message==='string'&&/^[A-Z0-9_]{1,48}$/.test(e.message)?e.message:/browser(?:Type.launch|Context.newPage)/.test(String(e?.message||''))?'BROWSER_LAUNCH_FAILED':'UNCLASSIFIED'}));
   }
  });
 }

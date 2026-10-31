@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {Accounts} from './accounts.mjs';
 import {createCustomerApp} from './customer-server.mjs';
 
-async function setup({dailyLimit=10,userDailyLimit=3,aiClient={},ask}={}){
+async function setup({dailyLimit=10,userDailyLimit=3,aiClient={},ask,browserRuntime={available:()=>false,open:async()=>{throw Error('unexpected browser call')}}}={}){
  const accounts=new Accounts(':memory:','customer-test-secret-with-at-least-32-chars');
  const oauth={health:()=>({google:true,microsoft:true}),handle:async()=>false};
  const calls=[];
- const app=createCustomerApp({accounts,oauth,mailToken:'configured',aiClient,dailyLimit,userDailyLimit,ask:ask??(async()=>({status:'complete',text:'Axel guidance is ready.',model:'claude-haiku-5-5',attempts:[{requestId:'req-test',usage:{input_tokens:12,output_tokens:20}}]})),mailSender:async()=>{},now:()=>Date.UTC(2026,9,30)});
+ const app=createCustomerApp({accounts,oauth,mailToken:'configured',aiClient,browserRuntime,dailyLimit,userDailyLimit,ask:ask??(async()=>({status:'complete',text:'Axel guidance is ready.',model:'claude-haiku-5-5',attempts:[{requestId:'req-test',usage:{input_tokens:12,output_tokens:20}}]})),mailSender:async()=>{},now:()=>Date.UTC(2026,9,30)});
  await new Promise(resolve=>app.listen(0,'127.0.0.1',resolve));
  const base='http://127.0.0.1:'+app.address().port;
  const origin='https://itproguy.com';
@@ -64,6 +64,13 @@ test('customer API does not charge failed or review-paused guidance',async()=>{
  const s=await setup({ask:async()=>({status:'needs_review',text:'Paused',model:'claude-haiku-5-5',attempts:[]})});
  try{const response=await post(s,'/api/axel',{prompt:'Review this'},s.Cookie);const body=await response.json();assert.equal(body.chargedSeconds,0);assert.equal(body.remainingTrialSeconds,1800);assert.equal(s.accounts.db.prepare('SELECT seconds FROM usage').get().seconds,0)}
  finally{s.accounts.close();await new Promise(resolve=>s.app.close(resolve))}
+});
+test('explicit open command runs the connected browser and meters the task',async()=>{
+const calls=[];
+const browserRuntime={available:()=>true,open:async(userId,target)=>{calls.push({userId,target});return{url:'https://www.google.com/chrome/',title:'Chrome',text:'Get Chrome',screenshot:null,isolated:true}}};
+const s=await setup({aiClient:null,browserRuntime});
+try{const response=await post(s,'/api/axel',{prompt:'open chrome.com'},s.Cookie);assert.equal(response.status,200);const body=await response.json();assert.equal(body.status,'complete');assert.equal(body.browserActions,true);assert.equal(body.browser.url,'https://www.google.com/chrome/');assert.match(body.text,/Opened www.google.com/);assert.equal(calls[0].target,'https://chrome.com/');assert.ok(body.trialDeductedSeconds>=1)}
+finally{s.accounts.close();await new Promise(resolve=>s.app.close(resolve))}
 });
 test('customer API requires login and reports model connection status',async()=>{
  const s=await setup({aiClient:null});
