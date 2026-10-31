@@ -69,7 +69,7 @@ test('explicit open command runs the connected browser and meters the task',asyn
 const calls=[];
 const browserRuntime={available:()=>true,open:async(userId,target)=>{calls.push({userId,target});return{url:'https://www.google.com/chrome/',title:'Chrome',text:'Get Chrome',screenshot:null,isolated:true}}};
 const s=await setup({aiClient:null,browserRuntime});
-try{const response=await post(s,'/api/axel',{prompt:'open chrome.com'},s.Cookie);assert.equal(response.status,200);const body=await response.json();assert.equal(body.status,'complete');assert.equal(body.browserActions,true);assert.equal(body.browser.url,'https://www.google.com/chrome/');assert.match(body.text,/Opened www.google.com/);assert.equal(calls[0].target,'https://chrome.com/');assert.ok(body.trialDeductedSeconds>=1)}
+try{const response=await post(s,'/api/axel',{prompt:'open chrome.com'},s.Cookie);assert.equal(response.status,200);const body=await response.json();assert.equal(body.status,'complete');assert.equal(body.browserActions,false);assert.equal(body.publicPagePreview,true);assert.equal(body.browser.url,'https://www.google.com/chrome/');assert.match(body.text,/Opened www.google.com/);assert.equal(calls[0].target,'https://chrome.com/');assert.ok(body.trialDeductedSeconds>=1)}
 finally{s.accounts.close();await new Promise(resolve=>s.app.close(resolve))}
 });
 test('customer API requires login and reports model connection status',async()=>{
@@ -77,7 +77,7 @@ test('customer API requires login and reports model connection status',async()=>
  try{
   assert.equal((await post(s,'/api/axel',{prompt:'Help'},null)).status,401);
   const health=await (await fetch(s.base+'/api/health')).json();
-  assert.equal(health.taskGuidance,false);assert.equal(health.browserActions,false);
+  assert.equal(health.taskGuidance,false);assert.equal(health.browserActions,false);assert.equal(health.publicPagePreview,false);
  }finally{s.accounts.close();await new Promise(resolve=>s.app.close(resolve))}
 });
 
