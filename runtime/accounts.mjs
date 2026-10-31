@@ -18,6 +18,7 @@ export class Accounts {
       CREATE TABLE IF NOT EXISTS purchases(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),stripe_session TEXT UNIQUE NOT NULL,amount_cents INTEGER NOT NULL,currency TEXT NOT NULL,seconds INTEGER NOT NULL,remaining_seconds INTEGER NOT NULL,expires INTEGER NOT NULL,status TEXT NOT NULL,receipt_url TEXT);
       CREATE TABLE IF NOT EXISTS requests(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),kind TEXT NOT NULL,reason TEXT NOT NULL,details TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',created_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS stripe_events(id TEXT PRIMARY KEY,processed_at INTEGER NOT NULL);`);
+    if(!this.db.prepare('PRAGMA table_info(users)').all().some(c=>c.name==='account_status'))this.db.exec("ALTER TABLE users ADD COLUMN account_status TEXT NOT NULL DEFAULT 'active' CHECK(account_status IN ('active','under_review','suspended'))");
   }
   hash(s){return createHmac('sha256',this.pepper).update(s).digest('hex')}
   email(s){if(typeof s!=='string'||s.length>254||! /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim()))throw Error('INVALID_EMAIL');return s.trim().toLowerCase()}
@@ -51,7 +52,7 @@ export class Accounts {
   session(token){if(typeof token!=='string')return null;const row=this.db.prepare('SELECT user_id FROM sessions WHERE digest=? AND expires>?').get(this.hash(token),this.now());return row?this.profile(row.user_id):null}
   logout(token){this.db.prepare('DELETE FROM sessions WHERE digest=?').run(this.hash(token))}
   profile(id){
-    const user=this.db.prepare('SELECT id,email,name,created_at,first_login,last_login,trial_seconds FROM users WHERE id=?').get(id);if(!user)return null;
+    const user=this.db.prepare('SELECT id,email,name,created_at,first_login,last_login,trial_seconds,account_status FROM users WHERE id=?').get(id);if(!user)return null;
     return {...user,paid_seconds:this.db.prepare("SELECT COALESCE(SUM(remaining_seconds),0) AS total FROM purchases WHERE user_id=? AND status='paid' AND expires>?").get(id,this.now()).total,
       usage:this.db.prepare('SELECT seconds,model,status,at FROM usage WHERE user_id=? ORDER BY id DESC LIMIT 100').all(id),
       payments:this.db.prepare('SELECT id,amount_cents,currency,seconds,remaining_seconds,expires,status,receipt_url FROM purchases WHERE user_id=? ORDER BY expires DESC LIMIT 100').all(id),

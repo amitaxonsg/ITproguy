@@ -12,9 +12,11 @@ Recovery from Google Cloud Shell: ssh axon-german
 - Profile settings include a private account photo. The client resizes accepted images to a 256-pixel JPEG; the authenticated API validates JPEG signature and size, stores it in a user-scoped SQLite table, returns it only to that account, and supports removal. Photos are not sent to Axel and are not automatically content-moderated.
 - Public policies.html covers privacy, terms, acceptable use, fair use, security, and payments/refunds. It states current limitations and support contact. Counsel/business-owner review remains required for legal entity details, jurisdiction, DPO/contact, retention schedule, and final enforceability.
 - Payments, purchases, credit renewal, invoices, cancellation and refunds are not integrated; checkout remains disabled. No card data is collected in the current site.
-- An account-level abuse review queue is not implemented. Text safety refusals can pause individual requests; account review requests are handled manually through the published support address. There is no image moderation workflow.
+- Signed-in users can submit an account-review request or abuse report. Requests enter the restricted admin queue, and the owner can set accounts to active, under review or suspended. Under-review/suspended accounts are blocked from new guidance but can still access account activity. This is manual review only; automated abuse scoring, photo moderation, notifications and an appeal portal are not implemented.
 - The admin area does not yet provide full role separation, operational incident tooling, or finance/refund controls.
 - The public site was refreshed from the current build after a browser cache initially displayed an older owner-preview screen. Always use a hard reload when checking launch copy.
+
+- 8. Add authenticated per-account usage, sign-in and purchase history; add restricted admin account, usage, payment and review-request views.
 
 ## Checks from this release
 
@@ -46,3 +48,48 @@ Recovery from Google Cloud Shell: ssh axon-german
 7. Commit and push reviewed changes; append outcomes and unresolved work here and in the Drive master knowledgebase.
 
 Current release source commit: 85fb7ee (profile photos, public trust policies, and refreshed release checklist). The build is deployed to the German host and GitHub main is synchronized.
+
+## 31 October 2026 release checkpoint
+
+Deployed to the German host after discovering that systemd runs the separate runtime tree at /srv/itproguy/runtime. The active account, customer API, router, and OIDC files have been synchronized from the repository; itproguy-api.service is healthy.
+
+Completed in this release:
+- Added branded FAQ, Help, and Pricing/Billing pages, shared responsive styling, and clearer navigation and policy links.
+- Added a signed-in account activity view for balances, sign-ins, guidance usage, purchase/receipt records, and review requests.
+- Added an owner-only admin console for account status, sign-ins, usage, purchase records, review queue, and audit events.
+- Added private account-review and abuse-report requests, duplicate-pending protection, and owner-controlled active/under-review/suspended status. Under-review or suspended accounts cannot start new guidance.
+- Updated privacy and fair-use copy to describe actual behavior and current limitations.
+
+Verification: node --test runtime/*.test.mjs passes 20/20; syntax checks and npm run build pass; git diff --check passes; active runtime files match the repo; /api/health returns ok: true. Customer pages and admin/profile flows were checked while signed in. No real review request or paid purchase was submitted.
+
+Still required before representing the service as fully production-ready:
+- Checkout, card charging, receipts/invoices, refunds, renewals, taxes, and payment reconciliation are not enabled. Pricing is a preview; do not accept customer payments.
+- Browser actions remain disabled (browserActions: false); Axel provides text guidance only.
+- Uploaded-photo/image moderation and automated abuse classification are not implemented. Review requests are manual.
+- Data export/deletion self-service, customer notification/appeal workflow, and final legal review of policies remain open.
+- Full mobile-device visual QA and customer UAT remain pending. Desktop page checks do not establish mobile UAT.
+
+Do not advertise disabled capabilities as live. Next release should complete payment and moderation decisions, run mobile-device QA and customer UAT, then update this record.
+
+
+## 31 October 2026 release checkpoint
+
+Deployed to the German host after discovering that systemd runs the separate runtime tree at /srv/itproguy/runtime. The active account, customer API, router, and OIDC files have been synchronized from the repository; itproguy-api.service is healthy.
+
+Completed in this release:
+- Added branded FAQ, Help, and Pricing/Billing pages, shared responsive styling, and clearer navigation and policy links.
+- Added a signed-in account activity view for balances, sign-ins, guidance usage, purchase/receipt records, and review requests.
+- Added an owner-only admin console for account status, sign-ins, usage, purchase records, review queue, and audit events.
+- Added private account-review and abuse-report requests, duplicate-pending protection, and owner-controlled active/under-review/suspended status. Under-review or suspended accounts cannot start new guidance.
+- Updated privacy and fair-use copy to describe actual behavior and current limitations.
+
+Verification: node --test runtime/*.test.mjs passes 20/20; syntax checks and npm run build pass; git diff --check passes; active runtime files match the repo; /api/health returns ok: true. Customer pages and admin/profile flows were checked while signed in. No real review request or paid purchase was submitted.
+
+Still required before representing the service as fully production-ready:
+- Checkout, card charging, receipts/invoices, refunds, renewals, taxes, and payment reconciliation are not enabled. Pricing is a preview; do not accept customer payments.
+- Browser actions remain disabled (browserActions: false); Axel provides text guidance only.
+- Uploaded-photo/image moderation and automated abuse classification are not implemented. Review requests are manual.
+- Data export/deletion self-service, customer notification/appeal workflow, and final legal review of policies remain open.
+- Full mobile-device visual QA and customer UAT remain pending. Desktop page checks do not establish mobile UAT.
+
+Do not advertise disabled capabilities as live. Next release should complete payment and moderation decisions, run mobile-device QA and customer UAT, then update this record.

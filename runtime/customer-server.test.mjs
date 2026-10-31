@@ -73,3 +73,29 @@ test('customer API requires login and reports model connection status',async()=>
   assert.equal(health.taskGuidance,false);assert.equal(health.browserActions,false);
  }finally{s.accounts.close();await new Promise(resolve=>s.app.close(resolve))}
 });
+
+test('account review requests are private, queued once, and admin can pause guidance',async()=>{
+ const s=await setup();
+ try{
+  assert.equal((await fetch(s.base+'/api/account')).status,401);
+  const invalid=await post(s,'/api/review',{kind:'account_review',details:'short'},s.Cookie);
+  assert.equal(invalid.status,400);
+  const created=await post(s,'/api/review',{kind:'account_review',details:'Please review my account access.'},s.Cookie);
+  assert.equal(created.status,201);
+  const body=await created.json();
+  assert.equal(body.request.status,'pending');
+  assert.equal((await post(s,'/api/review',{kind:'account_review',details:'Please review my account access again.'},s.Cookie)).status,409);
+  const account=await fetch(s.base+'/api/account',{headers:{Cookie:s.Cookie}});
+  const accountData=await account.json();
+  assert.equal(accountData.account.account_status,'active');
+  assert.equal(accountData.reviewRequests.length,1);
+  s.accounts.db.prepare('UPDATE users SET email=? WHERE id=?').run('amit@axon.com.sg',s.loggedIn.user.id);
+  const paused=await post(s,'/api/admin/account-status',{user_id:s.loggedIn.user.id,status:'under_review'},s.Cookie);
+  assert.equal(paused.status,200);
+  const blocked=await post(s,'/api/axel',{prompt:'Help me plan a website update.'},s.Cookie);
+  assert.equal(blocked.status,403);
+  assert.match((await blocked.json()).error,/under review/i);
+  const reopened=await post(s,'/api/admin/account-status',{user_id:s.loggedIn.user.id,status:'active'},s.Cookie);
+  assert.equal(reopened.status,200);
+ }finally{s.accounts.close();await new Promise(resolve=>s.app.close(resolve))}
+});
