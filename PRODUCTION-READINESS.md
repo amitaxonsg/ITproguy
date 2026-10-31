@@ -45,4 +45,4 @@ Recovery from Google Cloud Shell: ssh axon-german
 6. Verify the exact visible feature flags and limitations; do not claim full production readiness while gates above remain open.
 7. Commit and push reviewed changes; append outcomes and unresolved work here and in the Drive master knowledgebase.
 
-Latest completed code base before this release: e69004a (guidance metering). Update this document with the actual commit hash after the current changes are committed.
+Current release source commit: 85fb7ee (profile photos, public trust policies, and refreshed release checklist). The build is deployed to the German host and GitHub main is synchronized.
