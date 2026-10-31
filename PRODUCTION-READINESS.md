@@ -64,7 +64,7 @@ Verification: node --test runtime/*.test.mjs passes 20/20; syntax checks and npm
 
 Still required before representing the service as fully production-ready:
 - Checkout, card charging, receipts/invoices, refunds, renewals, taxes, and payment reconciliation are not enabled. Pricing is a preview; do not accept customer payments.
-- Interactive browser actions and external-account execution are unavailable. browserActions=true means only isolated public-page navigation and screenshot preview.
+- Interactive browser actions and external-account execution are unavailable. browserActions=false; publicPagePreview=true means isolated public-page navigation and screenshot only.
 - Uploaded-photo/image moderation and automated abuse classification are not implemented. Review requests are manual.
 - Data export/deletion self-service, customer notification/appeal workflow, and final legal review of policies remain open.
 - Full mobile-device visual QA and customer UAT remain pending. Desktop page checks do not establish mobile UAT.
@@ -87,7 +87,7 @@ Verification: node --test runtime/*.test.mjs passes 20/20; syntax checks and npm
 
 Still required before representing the service as fully production-ready:
 - Checkout, card charging, receipts/invoices, refunds, renewals, taxes, and payment reconciliation are not enabled. Pricing is a preview; do not accept customer payments.
-- Interactive browser actions and external-account execution are unavailable. browserActions=true means only isolated public-page navigation and screenshot preview.
+- Interactive browser actions and external-account execution are unavailable. browserActions=false; publicPagePreview=true means isolated public-page navigation and screenshot only.
 - Uploaded-photo/image moderation and automated abuse classification are not implemented. Review requests are manual.
 - Data export/deletion self-service, customer notification/appeal workflow, and final legal review of policies remain open.
 - Full mobile-device visual QA and customer UAT remain pending. Desktop page checks do not establish mobile UAT.
@@ -105,6 +105,15 @@ Do not advertise disabled capabilities as live. Next release should complete pay
 
 - Conclusion: do-for-me task execution is not implemented and must not be presented as live. Production execution requires vetted Google/Microsoft/site integrations with explicit least-privilege grants, consent, per-action approvals, audit evidence and recovery. An alternative generic browser-control route needs a user-controlled browser bridge with a deliberate permission and security design.
 
-- Verification after the latest code release: 24/24 automated tests passed; production build and git diff --check passed; live Gmail navigation succeeded after restoring the public-URL/DNS safety validator; health returned HTTP 200 with email login, Google/Microsoft identity login, task guidance and public browser preview enabled. Current commit d5e214b is pushed to main.
+- Verification after the latest code release: 24/24 automated tests passed; production build and git diff --check passed; live Gmail navigation succeeded after restoring the public-URL/DNS safety validator; health returned HTTP 200 with email login, Google/Microsoft identity login, task guidance and public browser preview enabled. Functional code commit d5e214b and status-semantics commit 815f6df are pushed to main.
 
 - Still open: actual task execution and delegated integrations; payment checkout, receipts/invoices, refunds, renewals and taxes; email/OAuth production UAT; admin review UAT; formal legal/security/backup reviews; image/abuse moderation and customer UAT.
+
+
+## 31 October 2026  Capability status clarified
+
+- The live API now reports browserActions=false and publicPagePreview=true. This avoids presenting public-page screenshot preview as interactive task execution.
+
+- The German API service is active and returns HTTP 200 after synchronizing runtime/customer-server.mjs. The 24-test suite and production build passed before deployment; live health reflects the new capability fields.
+
+- Source commit 815f6df is pushed to main. Full do-for-me integrations remain unimplemented.
