@@ -19,6 +19,7 @@ export function createCustomerApp({
  now=Date.now
 }={}) {
  if(!accounts)throw Error('ACCOUNTS_REQUIRED');
+accounts.db.exec('CREATE TABLE IF NOT EXISTS user_profiles(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,avatar_data TEXT,updated_at INTEGER NOT NULL)');
  oauth??=createOAuth({accounts});
  accounts.db.exec(`CREATE TABLE IF NOT EXISTS model_usage(
    usage_id INTEGER PRIMARY KEY REFERENCES usage(id) ON DELETE CASCADE,
@@ -76,7 +77,7 @@ return http.createServer(async(req,res)=>{
    if(req.method==='GET'&&path==='/api/session')return send(res,200,{user});
    if(req.method==='GET'&&path==='/api/health')return send(res,200,{ok:true,emailLogin:Boolean(mailToken),taskGuidance:Boolean(aiClient),...oauth.health(),browserActions:false});
    if(req.method==='GET'&&await oauth.handle(req,res,path))return;
-   if(req.method==='GET'&&path==='/api/profile')return send(user?200:401,user?{user}:{error:'Sign in first.'});
+   if(req.method==='GET'&&path==='/api/profile'){if(!user)return send(res,401,{error:'Sign in first.'});const avatar_data=accounts.db.prepare('SELECT avatar_data FROM user_profiles WHERE user_id=?').get(user.id)?.avatar_data||null;return send(res,200,{user,avatar_data});}
    if(req.method!=='POST')return send(res,404,{error:'Not found.'});
    if(!origins.has(req.headers.origin)||!/^application\/json(?:;|$)/.test(req.headers['content-type']||''))return send(res,403,{error:'Request origin not allowed.'});
    const data=await readBody(req); if(path==='/api/admin/request-status'){ if(!user)return send(res,401,{error:'Sign in first.'}); if(!isAdmin)return send(res,403,{error:'Admin access required.'}); const status=String(data.status||''); const id=Number(data.id); if(!Number.isInteger(id)||!['pending','reviewed','approved','declined'].includes(status))return send(res,400,{error:'Invalid request update.'}); const db=accounts.db; db.exec('CREATE TABLE IF NOT EXISTS admin_audit(id INTEGER PRIMARY KEY,actor_email TEXT NOT NULL,action TEXT NOT NULL,target_id TEXT,at INTEGER NOT NULL)'); const result=db.prepare('UPDATE requests SET status=? WHERE id=?').run(status,id); if(!result.changes)return send(res,404,{error:'Request not found.'}); db.prepare('INSERT INTO admin_audit(actor_email,action,target_id,at) VALUES(?,?,?,?)').run(adminEmail,'request_status',String(id),now()); return send(res,200,{ok:true,id,status}); }
@@ -95,7 +96,8 @@ return http.createServer(async(req,res)=>{
     if(token)accounts.logout(token);
     return send(res,200,{ok:true},{'Set-Cookie':cookie('')});
    }
-   if(!user)return send(res,401,{error:'Sign in with your email first.'});
+   if(!user)return send(res,401,{error:'Sign in with your email first.'});if(path==='/api/profile'){const avatar=data.avatar_data;if(avatar!==null&&typeof avatar!=='string')return send(res,400,{error:'Invalid profile image.'});if(typeof avatar==='string'){const match=avatar.match(/^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/);if(avatar.length>400000||!match)return send(res,400,{error:'Choose a valid JPEG photo smaller than 8 MB.'});const bytes=Buffer.from(match[1],'base64');if(bytes.length>280000||bytes[0]!==0xff||bytes[1]!==0xd8||bytes[2]!==0xff)return send(res,400,{error:'The image could not be verified as a JPEG.'});}accounts.db.prepare('INSERT INTO user_profiles(user_id,avatar_data,updated_at) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET avatar_data=excluded.avatar_data,updated_at=excluded.updated_at').run(user.id,avatar,now());return send(res,200,{ok:true,avatar_data:avatar});}
+
    if(path==='/api/axel'){
     if(typeof data.prompt!=='string'||!data.prompt.trim())return send(res,400,{error:'Enter a task.'});
     if(!aiClient)return send(res,503,{error:'Axel guidance is temporarily unavailable. No work time was deducted.'});

@@ -17,6 +17,18 @@ async function setup({dailyLimit=10,userDailyLimit=3,aiClient={},ask}={}){
  return {accounts,app,base,origin,Cookie,loggedIn,calls};
 }
 const post=(s,path,data,Cookie)=>fetch(s.base+path,{method:'POST',headers:{Origin:s.origin,'Content-Type':'application/json',...(Cookie?{Cookie}:{})},body:JSON.stringify(data)});
+test('profile photo is private, validated, and removable',async()=>{
+const s=await setup();
+try{
+assert.equal((await fetch(s.base+'/api/profile')).status,401);
+const avatar_data='data:image/jpeg;base64,/9j/AA==';
+const saved=await post(s,'/api/profile',{avatar_data},s.Cookie);assert.equal(saved.status,200);
+const profile=await fetch(s.base+'/api/profile',{headers:{Cookie:s.Cookie}});assert.equal(profile.status,200);assert.equal((await profile.json()).avatar_data,avatar_data);
+assert.equal((await post(s,'/api/profile',{avatar_data:'data:image/svg+xml;base64,PHN2Zz4='},s.Cookie)).status,400);
+assert.equal((await post(s,'/api/profile',{avatar_data:null},s.Cookie)).status,200);
+const cleared=await fetch(s.base+'/api/profile',{headers:{Cookie:s.Cookie}});assert.equal((await cleared.json()).avatar_data,null);
+}finally{s.accounts.close();await new Promise(resolve=>s.app.close(resolve))}
+});
 test('customer API charges completed Axel guidance against trial time',async()=>{
  const s=await setup();
  try{

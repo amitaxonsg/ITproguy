@@ -1,45 +1,48 @@
-# ITProGuy production-readiness gates
+# ITProGuy Production Readiness
 
-Updated 30 October 2026. “Done” means directly verified; configured flags do not prove a completed provider flow.
+Last checked: 31 October 2026
+Target: German host german.axonserver.com, project /srv/itproguy/repo
+Recovery from Google Cloud Shell: ssh axon-german
 
-## Done and verified
+## Current release
 
-- [x] Public HTTPS site and www redirect; deployment and rollback boundaries documented.
-- [x] Email-code, Google, and Microsoft sign-in UI/API deployed. Health endpoint reports `emailLogin=true`, `google=true`, `microsoft=true`.
-- [x] Owner email-code sign-in tested on the production domain. The code arrived in the owner mailbox; the message passed SPF, DKIM, and DMARC; sign-in succeeded.
-- [x] Owner Google OAuth sign-in tested on the production domain and resolved to the existing owner profile.
-- [x] Owner-only admin dashboard at `/admin/` opened successfully after email and Google sign-in. The admin overview, sign-in history, and audit event were visible; unauthenticated access was previously verified as rejected.
-- [x] Durable customer profile, one-time-code expiry/use limits, sessions, sign-in history, trial and paid-balance fields are present.
-- [x] Verified Google identity can resolve to an existing email account while preserving balances. Unverified email-based linking is blocked.
-- [x] Production build completed; customer API active. All 13 runtime account/router/customer API tests passed; npm audit reported 0 vulnerabilities.
-- [x] German Cockpit `Session IdleTimeout = 60` minutes was previously verified.
-- [x] After a fresh reload, the public page no longer shows the stale “Your workspace, coming together” dialog or PREVIEW header. It identifies the experience as text guidance and states browser actions are disabled.
+- Email-code, Google and Microsoft sign-in routes are configured. Email and Google owner sign-in passed previously; Microsoft owner-account UAT is still required. Health flags are not end-to-end proof.
+- Axel provides text guidance only. The guidance API meters successful work against trial time first and remaining paid time second; failed and review-paused requests are uncharged. No daily task quota is configured. One in-flight request per account is allowed.
+- Browser actions and connected-service execution are disabled. No real website or account change can be made by Axel.
+- Profile settings include a private account photo. The client resizes accepted images to a 256-pixel JPEG; the authenticated API validates JPEG signature and size, stores it in a user-scoped SQLite table, returns it only to that account, and supports removal. Photos are not sent to Axel and are not automatically content-moderated.
+- Public policies.html covers privacy, terms, acceptable use, fair use, security, and payments/refunds. It states current limitations and support contact. Counsel/business-owner review remains required for legal entity details, jurisdiction, DPO/contact, retention schedule, and final enforceability.
+- Payments, purchases, credit renewal, invoices, cancellation and refunds are not integrated; checkout remains disabled. No card data is collected in the current site.
+- An account-level abuse review queue is not implemented. Text safety refusals can pause individual requests; account review requests are handled manually through the published support address. There is no image moderation workflow.
+- The admin area does not yet provide full role separation, operational incident tooling, or finance/refund controls.
+- The public site was refreshed from the current build after a browser cache initially displayed an older owner-preview screen. Always use a hard reload when checking launch copy.
 
-## Implemented, with UAT or follow-up still needed
+## Checks from this release
 
-- [ ] Test Microsoft organizational-account OAuth with Amit’s intended account. The current account chooser did not show the owner identity; no account was linked. The open Microsoft 365 admin session belongs to a different tenant user. Do not link that identity without Amit identifying it.
-- [ ] Verify sign-out, session persistence/expiry, returning-user behavior, one-time-code expiry/resend limits, and mobile browser behavior.
-- [ ] Email delivery to the owner passed SPF/DKIM/DMARC once; add ongoing sender and delivery monitoring.
-- [ ] Clarify or remove the visible 30-minute trial balance. It is still shown in the signed-in owner UI and is stored as 1,800 seconds.
-- [ ] Confirm or remove the 10% 10-hour volume discount currently displayed in the Hire Axel dialog; it is not recorded as an approved commercial term.
-- [ ] Review current text-guidance limits against Amit’s stated no-token/no-task-limit requirement. The deployed guidance path still uses a 4,096-token response cap and 10 global / 3 per-account daily request quotas.
+- node --check runtime/customer-server.mjs
+- node --check runtime/claude-router.mjs
+- node --test runtime/*.test.mjs: 19 passing tests, including profile-image authentication, validation, private retrieval and removal.
+- npm run build: passed; public policy page is included in output.
+- git diff --check: passed.
+- Manual live customer task and photo upload were not run because this session had no owner-authenticated ITProGuy account tab. Do not describe synthetic/API tests as customer UAT.
+- Mobile stylesheet breakpoints are present; visual mobile-device verification remains pending.
 
-## Not implemented or not launch-ready
+## Production gates still open
 
-- [ ] Live isolated browser workflow, visible browser transport, platform allowlist, approval enforcement, audit evidence, and rollback/recovery. Health currently reports `browserActions=false`; do not enable by changing a flag alone.
-- [ ] Stripe checkout, webhook verification, idempotent fulfillment, credit ledger/metering/deduction, expiry, usage receipts, refunds, invoices/tax handling, and monthly auto-top-up cancellation.
-- [ ] The Stripe product has catalog prices but no ITProGuy checkout/payment link or application integration. The old default one-time price still says 24-month validity, while product policy says 12 months. A new one-time and monthly price were created, but no customer purchase flow is connected.
-- [ ] Staff roles/MFA, support/reset flows, financial controls, and full admin operations. Current owner dashboard is read-only for profiles, sign-in history, stored payment/receipt records, customer requests, and audit; status updates are audited. There are no payment or customer-request records yet.
-- [ ] Public final Terms, Privacy, Acceptable Use, Refund, Cookie, FAQ/contact and service-status pages; legal/business details and guarantee terms need owner review.
-- [ ] Operational monitoring/alerts, database backup and restore drill, retention/deletion process, incident response, security review, accessibility and full mobile/browser cross-device QA.
-- [ ] End-to-end tests for purchase-to-credit, task approval/execution, cancellation/refund, and recovery.
+1. Obtain legal review and confirm Axon operator/legal entity details, applicable jurisdictions, data retention/deletion schedule, data-protection contact and incident process.
+2. Implement a real abuse/account-review workflow with case IDs, evidence access controls, decisions, notice and appeal; add safe image moderation before making any photo public. Current avatar is private to the same user.
+3. Complete owner UAT for email code, Google and the intended Microsoft identity, profile photo upload/removal, session expiry, and mobile browser layout.
+4. Implement payment checkout and webhook verification, idempotent credit ledger, renewal/cancellation, invoices/tax handling, refund/dispute review, and end-to-end recovery tests before accepting customer payment.
+5. Build and verify actual browser execution with least-privilege OAuth scopes, explicit approvals, audit logs, action evidence and rollback before enabling browser actions.
+6. Complete monitoring/alerts, backup and restore drill, retention/deletion automation, accessibility review, and independent security review.
 
-## Current customer-visible behavior
+## Deployment checklist
 
-- Sign-in is available for email, Google and Microsoft when provider values are configured. Email-code and Google OAuth have passed an owner-account sign-in check; Microsoft has not.
-- Text guidance is available. It does not change a live site/account. The current system still applies the listed request and response limits. The verified synthetic route previously returned zero trial deduction; Amit has now confirmed guidance must consume trial or paid time. Metering is still pending.
-- The Hire Axel dialog offers one-time packs; monthly renewal and checkout are disabled. It states that payment, invoices and automatic renewals are unavailable. Credits are shown as valid for 12 months. The dialog still displays an unverified 10% discount.
-- The signed-in owner UI displays 30 minutes of trial balance. No customer payment records exist.
-- The health endpoint currently reports `ok=true`, `emailLogin=true`, `google=true`, `microsoft=true`, `taskGuidance=true`, `browserActions=false`. Provider flags do not substitute for end-to-end OAuth verification.
-- The German Cockpit terminal currently requires a separate server-user login before more server changes or deployment can be made; its login screen labels the host “Axon German Staging VPS,” so verify this is the intended deployment target. During reauthentication, a value that may be a credential appeared as shell output; rotate the server-user password before continuing. The latest pushed feature-code commit remains `66080ef`; the German checkout has uncommitted UI edits in `src/main.jsx` and `index.html` that are not built, tested, or deployed; the readiness checklist was updated in commits `c437551`, `adea7ed`, and `db07e5f`.
-- Do not describe the service as production-ready or accept paid customer work until the open implementation gates and owner UAT are complete.
+1. Inspect git status and verify no secrets are staged.
+2. Run runtime tests, production build and git diff --check.
+3. Back up the current static webroot and database before schema or release changes.
+4. Deploy dist/ to /var/www/itproguy.com/public/; restart itproguy-api.service after API changes.
+5. Verify https://itproguy.com/, /policies.html, and /api/health from a fresh browser reload.
+6. Verify the exact visible feature flags and limitations; do not claim full production readiness while gates above remain open.
+7. Commit and push reviewed changes; append outcomes and unresolved work here and in the Drive master knowledgebase.
+
+Latest completed code base before this release: e69004a (guidance metering). Update this document with the actual commit hash after the current changes are committed.
