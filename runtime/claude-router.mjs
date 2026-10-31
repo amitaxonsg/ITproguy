@@ -3,8 +3,9 @@ import { config } from 'dotenv';
 
 export const policy = Object.freeze({
   defaultModel: 'claude-haiku-5-5', fallbackModel: 'claude-sonnet-5-5',
-  timeoutMs: 60000, maxRetries: 2, maxInputChars: 80000,
-  limits: Object.freeze({ simple: 4096, standard: 8192, complex: 16384 }),
+  timeoutMs: 60000, maxRetries: 2, maxOutputTokens: 128000,
+ taskClasses: Object.freeze(['simple','standard','complex']),
+
   imageGeneration: false,
 });
 export const system = `You are Axel, the ITProGuy engineer backed by Axon 1Pro, Singapore.
@@ -28,9 +29,9 @@ export function createClient({ timeoutMs = policy.timeoutMs, maxRetries = policy
 // This transport plans only. No tools, shell, browser actions, or public HTTP listener.
 // taskClass/intent and validate must be supplied by trusted application code, not a client override.
 export async function askAxel({ prompt, history = [], taskClass = 'standard', intent = 'it_task', validate, allowFallback = true }, client) {
-  if (typeof prompt !== 'string' || !prompt.trim() || prompt.length > policy.maxInputChars)
+  if (typeof prompt !== 'string' || !prompt.trim())
     throw new Error('INVALID_PROMPT');
-  if (!Object.hasOwn(policy.limits, taskClass)) throw new Error('INVALID_TASK_CLASS');
+  if (!policy.taskClasses.includes(taskClass)) throw new Error('INVALID_TASK_CLASS');
   if (intent === 'image_generation') return { status: 'blocked', model: null,
     text: "I'm your engineer, not a chatbot. Upload your image here, and I can help update it on your site.", attempts: [] };
   client ??= createClient();
@@ -40,7 +41,7 @@ export async function askAxel({ prompt, history = [], taskClass = 'standard', in
     let response;
     try {
       response = await client.messages.create({ model,
-        max_tokens: policy.limits[taskClass],
+        max_tokens: policy.maxOutputTokens,
         thinking: { type: 'adaptive' },
         output_config: { effort: taskClass === 'simple' ? 'low' : taskClass === 'complex' ? 'high' : 'medium' },
         system, messages: [...history, { role: 'user', content: prompt.trim() }],

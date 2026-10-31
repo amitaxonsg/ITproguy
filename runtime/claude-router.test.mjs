@@ -9,9 +9,9 @@ function mock(results) {
 test('image generation blocked without network', async () => {
   const c = mock([]); assert.equal((await askAxel({ prompt: 'create image', intent: 'image_generation' }, c)).status, 'blocked'); assert.equal(c.calls.length, 0);
 });
-test('Haiku is default, bounded output, no sampling or execution tools', async () => {
+test('Haiku is default, provider maximum output, no sampling or execution tools', async () => {
   const c = mock([good]); assert.equal((await askAxel({ prompt: 'Update my site', taskClass: 'complex' }, c)).status, 'complete');
-  assert.equal(c.calls[0].model, policy.defaultModel); assert.equal(c.calls[0].max_tokens, 16384);
+  assert.equal(c.calls[0].model, policy.defaultModel); assert.equal(c.calls[0].max_tokens, policy.maxOutputTokens);
   for (const k of ['temperature', 'top_p', 'top_k', 'tools']) assert.equal(k in c.calls[0], false);
 });
 test('overload can fall back once', async () => {

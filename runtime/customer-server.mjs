@@ -16,8 +16,6 @@ export function createCustomerApp({
  mailSender=sendOtp,
  aiClient=null,
  ask=askAxel,
- dailyLimit=10,
- userDailyLimit=3,
  now=Date.now
 }={}) {
  if(!accounts)throw Error('ACCOUNTS_REQUIRED');
@@ -28,34 +26,48 @@ export function createCustomerApp({
    output_tokens INTEGER NOT NULL DEFAULT 0 CHECK(output_tokens>=0),
    request_id TEXT
  )`);
- let windowStart=now(),requests=0,busy=false;
+ let windowStart=now(),requests=0;const busyUsers=new Set();
  const send=(res,status,data,headers={})=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers});res.end(JSON.stringify(data))};
- async function readBody(req,maxBytes=12000){
+ async function readBody(req,maxBytes=1048576){
   let raw='';for await(const chunk of req){raw+=chunk;if(Buffer.byteLength(raw)>maxBytes)throw Error('TOO_LARGE')}
   return JSON.parse(raw);
  }
  function reserveUsage(userId){
-  const timestamp=now(),date=new Date(timestamp),start=Date.UTC(date.getUTCFullYear(),date.getUTCMonth(),date.getUTCDate());
-  accounts.db.exec('BEGIN IMMEDIATE');
-  try{
-   const global=accounts.db.prepare("SELECT COUNT(*) AS n FROM usage WHERE at>=? AND at<? AND seconds=0 AND model LIKE 'claude-%'").get(start,start+86400000).n;
-   const personal=accounts.db.prepare("SELECT COUNT(*) AS n FROM usage WHERE user_id=? AND at>=? AND at<? AND seconds=0 AND model LIKE 'claude-%'").get(userId,start,start+86400000).n;
-   if(global>=dailyLimit||personal>=userDailyLimit){accounts.db.exec('ROLLBACK');return null}
-   const row=accounts.db.prepare("INSERT INTO usage(user_id,thread_id,seconds,model,status,at) VALUES(?,NULL,0,'claude-haiku-5-5','reserved',?)").run(userId,timestamp);
-   accounts.db.exec('COMMIT');return Number(row.lastInsertRowid);
-  }catch(e){accounts.db.exec('ROLLBACK');throw e}
- }
- function finishUsage(id,{status,model='claude-haiku-5-5',attempts=[]}){
-  const usage=attempts.reduce((sum,a)=>{if(a.usage){sum.input+=Number(a.usage.input_tokens)||0;sum.output+=Number(a.usage.output_tokens)||0}return sum},{input:0,output:0});
-  const requestId=[...attempts].reverse().find(a=>a.requestId)?.requestId??null;
-  accounts.db.exec('BEGIN IMMEDIATE');
-  try{
-   accounts.db.prepare('UPDATE usage SET status=?,model=? WHERE id=?').run(status,model??'claude-haiku-5-5',id);
-   accounts.db.prepare('INSERT OR REPLACE INTO model_usage(usage_id,input_tokens,output_tokens,request_id) VALUES(?,?,?,?)').run(id,usage.input,usage.output,requestId);
-   accounts.db.exec('COMMIT');
-  }catch(e){accounts.db.exec('ROLLBACK');throw e}
- }
- return http.createServer(async(req,res)=>{
+ const timestamp=now();accounts.db.exec('BEGIN IMMEDIATE');
+ try{
+  const user=accounts.db.prepare('SELECT trial_seconds FROM users WHERE id=?').get(userId);
+  const paid=accounts.db.prepare("SELECT COALESCE(SUM(remaining_seconds),0) AS seconds FROM purchases WHERE user_id=? AND status='paid' AND expires>?").get(userId,timestamp)?.seconds||0;
+  if(!user||Number(user.trial_seconds)+Number(paid)<=0){accounts.db.exec('ROLLBACK');return null}
+  const row=accounts.db.prepare("INSERT INTO usage(user_id,thread_id,seconds,model,status,at) VALUES(?,NULL,0,'claude-haiku-5-5','reserved',?)").run(userId,timestamp);
+  accounts.db.exec('COMMIT');return Number(row.lastInsertRowid);
+ }catch(e){accounts.db.exec('ROLLBACK');throw e}
+}
+function finishUsage(id,{status,model='claude-haiku-5-5',attempts=[],elapsedSeconds=0}){
+ const usage=attempts.reduce((sum,a)=>{if(a.usage){sum.input+=Number(a.usage.input_tokens)||0;sum.output+=Number(a.usage.output_tokens)||0}return sum},{input:0,output:0});
+ const requestId=[...attempts].reverse().find(a=>a.requestId)?.requestId??null;
+ accounts.db.exec('BEGIN IMMEDIATE');
+ try{
+  let trialDeductedSeconds=0,paidDeductedSeconds=0;
+  if(status==='complete'){
+   const user=accounts.db.prepare('SELECT id,trial_seconds FROM users WHERE id=(SELECT user_id FROM usage WHERE id=?)').get(id);
+   const timestamp=now(),requested=Math.max(1,Math.ceil(Number(elapsedSeconds)||0));
+   trialDeductedSeconds=Math.min(requested,Math.max(0,Number(user?.trial_seconds)||0));
+   if(trialDeductedSeconds)accounts.db.prepare('UPDATE users SET trial_seconds=MAX(0,trial_seconds-?) WHERE id=?').run(trialDeductedSeconds,user.id);
+   let left=requested-trialDeductedSeconds;
+   const credits=accounts.db.prepare("SELECT id,remaining_seconds FROM purchases WHERE user_id=? AND status='paid' AND expires>? AND remaining_seconds>0 ORDER BY expires,id").all(user?.id,timestamp);
+   for(const credit of credits){if(left<=0)break;const take=Math.min(left,Number(credit.remaining_seconds)||0);if(take>0){accounts.db.prepare('UPDATE purchases SET remaining_seconds=MAX(0,remaining_seconds-?) WHERE id=?').run(take,credit.id);paidDeductedSeconds+=take;left-=take}}
+  }
+  const charged=trialDeductedSeconds+paidDeductedSeconds;
+  accounts.db.prepare('UPDATE usage SET status=?,model=?,seconds=? WHERE id=?').run(status,model??'claude-haiku-5-5',charged,id);
+  accounts.db.prepare('INSERT OR REPLACE INTO model_usage(usage_id,input_tokens,output_tokens,request_id) VALUES(?,?,?,?)').run(id,usage.input,usage.output,requestId);
+  const userId=accounts.db.prepare('SELECT user_id FROM usage WHERE id=?').get(id).user_id;
+  const remainingTrialSeconds=Number(accounts.db.prepare('SELECT trial_seconds FROM users WHERE id=?').get(userId)?.trial_seconds)||0;
+  const remainingPaidSeconds=Number(accounts.db.prepare("SELECT COALESCE(SUM(remaining_seconds),0) AS seconds FROM purchases WHERE user_id=? AND status='paid' AND expires>?").get(userId,now())?.seconds)||0;
+  accounts.db.exec('COMMIT');return {trialDeductedSeconds,paidDeductedSeconds,chargedSeconds:charged,remainingTrialSeconds,remainingPaidSeconds};
+ }catch(e){accounts.db.exec('ROLLBACK');throw e}
+}
+
+return http.createServer(async(req,res)=>{
   let usageId=null;
   try{
    const path=req.url?.split('?')[0]||'/';
@@ -85,20 +97,20 @@ export function createCustomerApp({
    }
    if(!user)return send(res,401,{error:'Sign in with your email first.'});
    if(path==='/api/axel'){
-    if(typeof data.prompt!=='string'||!data.prompt.trim()||data.prompt.length>8000)return send(res,400,{error:'Enter a task of up to 8,000 characters.'});
+    if(typeof data.prompt!=='string'||!data.prompt.trim())return send(res,400,{error:'Enter a task.'});
     if(!aiClient)return send(res,503,{error:'Axel guidance is temporarily unavailable. No work time was deducted.'});
-    if(busy)return send(res,429,{error:'Axel is handling another request. Please try again shortly.'});
+    if(busyUsers.has(user.id))return send(res,429,{error:'Axel is finishing your previous request. Please try again shortly.'});
     usageId=reserveUsage(user.id);
-    if(usageId===null)return send(res,429,{error:'The daily Axel request limit has been reached. Try again tomorrow.'});
-    busy=true;
-    try{
+    if(usageId===null)return send(res,402,{error:'No guidance time is available. Checkout is currently disabled; contact support to add time.'});
+    busyUsers.add(user.id);
+    const startedAt=Date.now();
+try{
      const result=await ask({prompt:data.prompt,history:[],taskClass:'simple',intent:'it_task',allowFallback:false},aiClient);
-     finishUsage(usageId,{status:result.status,model:result.model,attempts:result.attempts||[]});
-     return send(res,200,{status:result.status,text:result.text,model:result.model,browserActions:false,trialDeductedSeconds:0});
+     const metering=finishUsage(usageId,{status:result.status,model:result.model,attempts:result.attempts||[],elapsedSeconds:Math.max(1,Math.ceil((Date.now()-startedAt)/1000))});return send(res,200,{status:result.status,text:result.text,model:result.model,browserActions:false,...metering});
     }catch(e){
      finishUsage(usageId,{status:'failed',attempts:[]});
      throw e;
-    }finally{busy=false}
+    }finally{busyUsers.delete(user.id)}
    }
    return send(res,404,{error:'Not found.'});
   }catch(e){
