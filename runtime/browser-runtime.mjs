@@ -5,10 +5,20 @@ import { existsSync } from 'node:fs';
 const EXE=process.env.CHROMIUM_PATH||'/srv/itproguy/runtime/browsers/chromium-1248/chrome-linux64/chrome';
 const dnsCache=new Map();
 function privateIp(ip){const v=isIP(ip);if(v===4){const[a,b]=ip.split('.').map(Number);return a===0||a===10||a===127||a>=224||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&(b===168||b===0))||(a===198&&(b===18||b===19||b===51))||(a===203&&b===0)}if(v===6){const x=ip.toLowerCase();if(x.startsWith('::ffff:'))return privateIp(x.slice(7));return x==='::'||x==='::1'||x.startsWith('fc')||x.startsWith('fd')||/^fe[89ab]/.test(x)||x.startsWith('ff')}return true}
-export function parseBrowserNavigation(prompt){if(typeof prompt!=='string'||prompt.length>300)return null;const m=prompt.trim().match(/^(?:please\s+)?(?:open|go to|visit|navigate to)\s+(https?:\/\/[^\s]+|(?:www\.)?[a-z0-9][a-z0-9.-]*\.[a-z]{2,}(?:\/[^\s]*)?)[.!]?$/i);if(!m)return null;let raw=m[1].replace(/[),.!?]+$/,'');if(!/^https?:\/\//i.test(raw))raw='https://'+raw;try{const u=new URL(raw);if(!['http:','https:'].includes(u.protocol)||u.username||u.password)return null;return u.href}catch{return null}}
+export function parseBrowserNavigation(prompt){
+  if(typeof prompt!=='string'||prompt.length>300)return null;
+  const input=prompt.trim();
+  const commandText=input.replace(/^(?:(?:please|pls|can you|could you)\s+)?/i,'');
+  if(/^(?:open|launch|start)\s+(?:(?:the|google)\s+)?chrome(?:\s+(?:browser|website|site|app))?[.!?]?$/i.test(commandText))return'https://www.google.com/chrome/';
+  const m=commandText.match(/^(?:open|go to|visit|navigate to)\s+(https?:\/\/[^\s]+|(?:www\.)?[a-z0-9][a-z0-9.-]*\.[a-z]{2,}(?:\/[^\s]*)?)[.!?]?$/i);
+  if(!m)return null;
+  let raw=m[1].replace(/[),.!?]+$/,'');
+  if(!/^https?:\/\//i.test(raw))raw='https://'+raw;
+  try{const u=new URL(raw);if(!['http:','https:'].includes(u.protocol)||u.username||u.password)return null;return u.href}catch{return null}
+}
 async function publicUrl(value){let u;try{u=new URL(value)}catch{return false}if(!['http:','https:'].includes(u.protocol)||u.username||u.password)return false;const host=u.hostname.toLowerCase().replace(/^\[|\]$/g,'').replace(/\.$/,'');if(!host||host==='localhost'||/\.(?:localhost|local|internal|test|invalid)$/.test(host))return false;if(isIP(host))return !privateIp(host);let r=dnsCache.get(host);if(!r||r.until<Date.now()){try{r={ips:(await lookup(host,{all:true,verbatim:true})).map(x=>x.address),until:Date.now()+30000};dnsCache.set(host,r)}catch{return false}}return r.ips.length>0&&r.ips.every(ip=>!privateIp(ip))}
 export class BrowserRuntime{
- constructor({executablePath=EXE,maxSessions=24,idleMs=900000}={}){this.executablePath=executablePath;this.maxSessions=maxSessions;this.idleMs=idleMs;this.browser=null;this.sessions=new Map()}
+ constructor({executablePath=EXE,maxSessions=2,idleMs=300000}={}){this.executablePath=executablePath;this.maxSessions=maxSessions;this.idleMs=idleMs;this.browser=null;this.sessions=new Map()}
  available(){return existsSync(this.executablePath)}
  async launch(){if(!this.available())throw Error('BROWSER_RUNTIME_UNAVAILABLE');if(!this.browser||!this.browser.isConnected()){this.browser=await chromium.launch({executablePath:this.executablePath,headless:true,args:['--disable-dev-shm-usage']});this.browser.on('disconnected',()=>{this.browser=null})}return this.browser}
  async closeSession(id){const s=this.sessions.get(id);if(!s)return;clearTimeout(s.timer);this.sessions.delete(id);await s.context.close().catch(()=>{})}
