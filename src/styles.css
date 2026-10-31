@@ -249,3 +249,12 @@ html,body,#root{height:100%;min-height:0}body{overflow:hidden;font-family:Inter,
 }
 
 @media (max-width:1020px){.app-body{flex:1 1 auto;min-height:0}}
+
+@media (min-width:1021px) and (max-width:1350px){
+ .preview-center.preview-connected{grid-template-columns:minmax(0,1fr);gap:14px;align-content:start;flex:0 0 auto}
+ .preview-center.preview-connected .browser-live-image{grid-column:1;grid-row:auto;width:min(100%,720px);max-height:32vh;margin:0 auto}
+ .preview-center.preview-connected h3,.preview-center.preview-connected>p,.preview-center.preview-connected .preview-external-link,.preview-center.preview-connected .preview-action{grid-column:1;text-align:center;justify-self:center}
+ .preview-center.preview-connected>p{max-width:600px}
+}
+.preview-external-link{display:inline-flex;align-items:center;justify-content:center;gap:8px;margin:2px auto 0;padding:9px 14px;border:1px solid #d8e2f1;border-radius:10px;background:#fff;color:#3568d4;font-size:14px;font-weight:600;text-decoration:none;transition:background .15s,border-color .15s}
+.preview-external-link:hover{background:#f4f7ff;border-color:#b7c9ee}
