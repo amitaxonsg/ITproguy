@@ -64,7 +64,7 @@ Verification: node --test runtime/*.test.mjs passes 20/20; syntax checks and npm
 
 Still required before representing the service as fully production-ready:
 - Checkout, card charging, receipts/invoices, refunds, renewals, taxes, and payment reconciliation are not enabled. Pricing is a preview; do not accept customer payments.
-- Browser actions remain disabled (browserActions: false); Axel provides text guidance only.
+- Interactive browser actions and external-account execution are unavailable. browserActions=true means only isolated public-page navigation and screenshot preview.
 - Uploaded-photo/image moderation and automated abuse classification are not implemented. Review requests are manual.
 - Data export/deletion self-service, customer notification/appeal workflow, and final legal review of policies remain open.
 - Full mobile-device visual QA and customer UAT remain pending. Desktop page checks do not establish mobile UAT.
@@ -87,9 +87,24 @@ Verification: node --test runtime/*.test.mjs passes 20/20; syntax checks and npm
 
 Still required before representing the service as fully production-ready:
 - Checkout, card charging, receipts/invoices, refunds, renewals, taxes, and payment reconciliation are not enabled. Pricing is a preview; do not accept customer payments.
-- Browser actions remain disabled (browserActions: false); Axel provides text guidance only.
+- Interactive browser actions and external-account execution are unavailable. browserActions=true means only isolated public-page navigation and screenshot preview.
 - Uploaded-photo/image moderation and automated abuse classification are not implemented. Review requests are manual.
 - Data export/deletion self-service, customer notification/appeal workflow, and final legal review of policies remain open.
 - Full mobile-device visual QA and customer UAT remain pending. Desktop page checks do not establish mobile UAT.
 
 Do not advertise disabled capabilities as live. Next release should complete payment and moderation decisions, run mobile-device QA and customer UAT, then update this record.
+
+
+## 31 October 2026  Work execution gap confirmed (commit d5e214b)
+
+- The live owner-session prompt go to login page of gmail.com i can login now opens accounts.google.com in the isolated preview. The preview shows a user-clicked Continue in your browser to sign in link; no credentials were entered or submitted.
+
+- The current Exchange/DKIM task response still returns PowerShell instructions rather than performing changes. This is expected from the current architecture: ordinary tasks are sent to Claude without tool definitions; the only deterministic browser route opens a public URL and captures a screenshot.
+
+- BrowserRuntime has no click, keyboard, form-submit, sign-in, or website-edit operations. The browser is isolated with no customer cookies. Google and Microsoft OAuth request only openid email profile, which authenticates ITProGuy accounts and does not grant Gmail, Drive, Exchange, or Microsoft Graph API access.
+
+- Conclusion: do-for-me task execution is not implemented and must not be presented as live. Production execution requires vetted Google/Microsoft/site integrations with explicit least-privilege grants, consent, per-action approvals, audit evidence and recovery. An alternative generic browser-control route needs a user-controlled browser bridge with a deliberate permission and security design.
+
+- Verification after the latest code release: 24/24 automated tests passed; production build and git diff --check passed; live Gmail navigation succeeded after restoring the public-URL/DNS safety validator; health returned HTTP 200 with email login, Google/Microsoft identity login, task guidance and public browser preview enabled. Current commit d5e214b is pushed to main.
+
+- Still open: actual task execution and delegated integrations; payment checkout, receipts/invoices, refunds, renewals and taxes; email/OAuth production UAT; admin review UAT; formal legal/security/backup reviews; image/abuse moderation and customer UAT.
