@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {PilotService} from './pilot.mjs';
 
-function setup(responses=[]){
+function setup(responses=[],approved=true){
  const calls=[],audit=[],typed=[],finished=[];
  const accounts={db:{exec(){},prepare(sql){return{run(...args){audit.push({sql,args})},get(){return{account_status:'active'}}}}}};
  const page={url:()=> 'https://example.com/',keyboard:{insertText:async text=>typed.push(text),press:async key=>typed.push(key)},mouse:{click:async()=>{},wheel:async()=>{}},screenshot:async()=>Buffer.from('jpeg'),title:async()=> 'Example'};
  const browser={idleMs:1,maxSessions:2,sessions:new Map(),available:()=>true,closeSession:async id=>browser.sessions.delete(id)};
  const client={messages:{create:async request=>{calls.push(request);return responses.shift()||{content:[{type:'text',text:'Finished.'}],stop_reason:'end_turn',usage:{}}}}};
  const pilot=new PilotService({browser,client,accounts,reserveUsage:()=>1,finishUsage:(...x)=>{finished.push(x);return{remainingTrialSeconds:100}}});
+ const originalStart=pilot.start.bind(pilot);pilot.start=(...args)=>{const result=originalStart(...args);if(approved&&pilot.tasks.get(args[0]?.id))pilot.tasks.get(args[0].id).planApproved=true;return result};
  const user={id:'one',account_status:'active'};
  return{pilot,browser,page,user,calls,audit,typed,finished}
 }
@@ -37,4 +38,15 @@ test('pilot HTTP handler denies unauthenticated and cross-origin requests before
 });
 test('a login field in a child frame pauses before any model screenshot is captured',async()=>{
  const s=setup();try{const t=await s.pilot.start(s.user,'Check');await wait();s.page.frames=()=>[{locator:()=>({count:async()=>0})},{locator:()=>({count:async()=>1})}];s.browser.sessions.set(s.user.id,{page:s.page});s.pilot.capture=async()=>{throw Error('must not capture for model')};const value=await s.pilot.inspect(s.pilot.tasks.get(s.user.id));assert.deepEqual(value,{loginRequired:true});assert.equal(s.pilot.tasks.get(s.user.id).status,'takeover')}finally{await s.pilot.close()}
+});
+
+
+test('new tasks cannot perform browser actions before an approved plan',async()=>{
+ const s=setup([{content:[{type:'tool_use',id:'nav',name:'navigate',input:{url:'https://example.com'}}],stop_reason:'tool_use',usage:{}}],false);let executed=0;s.pilot.perform=async()=>{executed++};try{await s.pilot.start(s.user,'Open example.com');await wait();assert.equal(executed,0);assert.match(JSON.stringify(s.pilot.tasks.get(s.user.id).messages),/Propose a concise plan/)}finally{await s.pilot.close()}
+});
+test('plan approval starts the plan but retains exact action review',async()=>{
+ const s=setup([{content:[{type:'tool_use',id:'plan',name:'propose_plan',input:{reason:'1. Inspect the page. 2. Submit the requested search.'}}],stop_reason:'tool_use',usage:{}},{content:[{type:'tool_use',id:'key',name:'key',input:{key:'Enter',reason:'Submit search'}}],stop_reason:'tool_use',usage:{}}],false);try{s.browser.sessions.set(s.user.id,{page:s.page});const t=await s.pilot.start(s.user,'Search');await wait();let p=s.pilot.tasks.get(s.user.id);assert.equal(p.pending.tool.name,'propose_plan');assert.deepEqual(s.typed,[]);await s.pilot.command(s.user,{action:'approve',taskId:t.id,approvalId:p.pending.id});await wait();assert.equal(p.planApproved,true);assert.equal(p.pending.tool.name,'key');assert.deepEqual(s.typed,[])}finally{await s.pilot.close()}
+});
+test('customer viewport resize and pixel scroll stay bounded',async()=>{
+ const s=setup();let size={width:1180,height:720},delta;s.page.viewportSize=()=>size;s.page.setViewportSize=async v=>{size=v};s.page.mouse.wheel=async(x,y)=>{delta=y};try{const t=await s.pilot.start(s.user,'Check');await wait();s.browser.sessions.set(s.user.id,{page:s.page});await s.pilot.command(s.user,{action:'takeover',taskId:t.id});await s.pilot.command(s.user,{action:'input',taskId:t.id,kind:'resize',width:5000,height:900});assert.deepEqual(size,{width:1920,height:900});await s.pilot.command(s.user,{action:'input',taskId:t.id,kind:'scroll',deltaY:75});assert.equal(delta,75);await s.pilot.command(s.user,{action:'input',taskId:t.id,kind:'scroll',deltaY:99999});assert.equal(delta,1080)}finally{await s.pilot.close()}
 });
