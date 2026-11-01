@@ -31,7 +31,7 @@ export class PilotService {
  state(t){return t?{id:t.id,prompt:t.prompt,status:t.status,busy:t.loop,events:t.events.slice(-40),text:t.events.map(x=>x.text).join('\n\n'),model:t.model,approval:t.pending?{id:t.pending.id,kind:t.pending.tool.name,reason:t.pending.tool.input.reason||'Open another website',target:t.pending.targetName||'',url:t.pending.url||'',value:t.pending.tool.name==='fill'?t.pending.tool.input.text:undefined}:null,balance:t.balance}:null}
  session(t){const s=this.browser.sessions.get(t.userId);if(!s)throw Error('BROWSER_SESSION_EXPIRED');return s}
  touch(t){t.last=this.now();const s=this.browser.sessions.get(t.userId);if(s){s.last=this.now();clearTimeout(s.timer);s.timer=setTimeout(()=>this.end(t.userId).catch(()=>{}),HOUR);s.timer.unref?.()}}
- async loginPage(t){const p=this.session(t).page;if(/(^|\.)(accounts\.google\.com|login\.microsoftonline\.com|login\.live\.com)$/.test(new URL(p.url()).hostname))return true;for(const frame of p.frames())if(await frame.locator('input[type="password"],input[autocomplete="one-time-code"]').count().catch(()=>0)>0)return true;return false}
+ async loginPage(t){const p=this.session(t).page;if(/(^|\.)(accounts\.google\.com|login\.microsoftonline\.com|login\.live\.com)$/.test(new URL(p.url()).hostname))return true;for(const frame of p.frames())if(await frame.locator('input[type="password"]:visible,input[autocomplete="one-time-code"]:visible').count().catch(()=>0)>0)return true;return false}
  async capture(t){const p=this.session(t).page;const shot=await p.screenshot({type:'jpeg',quality:55,scale:'css',timeout:8000});return{url:p.url(),title:await p.title(),screenshot:shot.toString('base64'),width:1180,height:720}}
  async inspect(t){
   if(await this.loginPage(t)){t.status='takeover';this.event(t,'Please take control of the pilot to sign in. Resume Axel when you have finished.');this.audit(t,'login_handoff',this.session(t).page.url());return{loginRequired:true}}
@@ -97,10 +97,10 @@ export class PilotService {
   t={id:randomUUID(),userId:user.id,prompt:prompt.trim(),status:'running',model:policy.fallbackModel,messages:[{role:'user',content:prompt.trim()}],events:[],last:this.now(),epoch:0,loop:false,pending:null};this.tasks.set(user.id,t);this.event(t,'Axel is checking the task in your pilot browser.');this.audit(t,'start');queueMicrotask(()=>this.run(t));return this.state(t)
  }
  async command(user,data){
-  this.guard(user);if(data.action==='start')return this.start(user,data.prompt);const t=this.tasks.get(user.id);if(!t)throw Error('NO_ACTIVE_PILOT');if(data.taskId!==t.id)throw Error('PILOT_TASK_CHANGED');this.touch(t);
+  this.guard(user);if(data.action==='open')return this.openBrowser(user);if(data.action==='start')return this.start(user,data.prompt);const t=this.tasks.get(user.id);if(!t)throw Error('NO_ACTIVE_PILOT');if(data.taskId!==t.id)throw Error('PILOT_TASK_CHANGED');this.touch(t);
   if(data.action==='end'){await this.end(user.id);return null}
   if(data.action==='takeover'){t.epoch++;t.abort?.abort();if(t.pending){this.result(t,t.pending.tool,{pausedForCustomer:true,cancelled:true},true);t.pending=null}t.status='takeover';this.event(t,'You control the browser. Axel is paused and does not receive pilot screenshots or private input.');this.audit(t,'takeover');return this.state(t)}
-  if(data.action==='resume'){if(!['takeover','paused','error','complete'].includes(t.status))throw Error('PILOT_NOT_PAUSED');if(t.loop)throw Error('WAIT_FOR_PAUSE');t.epoch++;t.status='running';t.messages.push({role:'user',content:'I have finished my manual work. You may view this browser session and continue my original task. Inspect the current page before acting.'});this.event(t,'Axel is resuming in the same browser session.');queueMicrotask(()=>this.run(t));return this.state(t)}
+  if(data.action==='resume'){if(!['takeover','paused','error','complete'].includes(t.status))throw Error('PILOT_NOT_PAUSED');if(t.loop)throw Error('WAIT_FOR_PAUSE');if(!t.prompt&&!t.queued?.length){this.event(t,'What would you like me to do in this browser? Send your goal in chat, then let me take over.');return this.state(t)}if(!t.prompt&&t.queued?.length)t.prompt=t.queued[0];t.epoch++;t.status='running';t.messages.push({role:'user',content:'I have finished my manual work. You may view this browser session and continue my original task. Inspect the current page before acting.'});this.event(t,'Axel is resuming in the same browser session.');queueMicrotask(()=>this.run(t));return this.state(t)}
   if(data.action==='approve'||data.action==='reject'){
    if(t.status!=='approval'||!t.pending||data.approvalId!==t.pending.id)throw Error('APPROVAL_EXPIRED');const pending=t.pending;t.pending=null;t.status='running';
    if(data.action==='reject')this.result(t,pending.tool,{rejectedByCustomer:true},true);else{try{if(pending.tool.name!=='navigate'&&this.session(t).page.url()!==pending.url)throw Error('PAGE_CHANGED_INSPECT_AGAIN');const value=await this.perform(t,pending.tool);this.result(t,pending.tool,value)}catch(e){this.result(t,pending.tool,{error:e.message},true)}}
@@ -110,20 +110,27 @@ export class PilotService {
    if(t.status!=='takeover')throw Error('TAKE_CONTROL_FIRST');if(t.loop)throw Error('WAIT_FOR_PAUSE');const p=this.session(t).page;
    if(data.kind==='click'){const x=Number(data.x),y=Number(data.y);if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||y<0||x>1180||y>720)throw Error('INVALID_POINTER');await p.mouse.click(x,y)}
    else if(data.kind==='text'){if(typeof data.text!=='string'||data.text.length>8192)throw Error('INVALID_INPUT');await p.keyboard.insertText(data.text)}
-   else if(data.kind==='key'){if(!['Enter','Tab','Backspace','Delete','Escape','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Control+A','Space'].includes(data.key))throw Error('INVALID_KEY');await p.keyboard.press(data.key)}
+   else if(data.kind==='key'){if(typeof data.key!=='string'||! /^(?:(?:Control|Shift|Alt)\+){0,2}(?:[a-zA-Z0-9]|Enter|Tab|Backspace|Delete|Escape|ArrowLeft|ArrowRight|ArrowUp|ArrowDown|Home|End|PageUp|PageDown|Space)$/.test(data.key))throw Error('INVALID_KEY');await p.keyboard.press(data.key)}
    else if(data.kind==='scroll')await p.mouse.wheel(0,data.direction==='up'?-520:520);
    else if(data.kind==='navigate')await this.browser.open(user.id,data.url);
    else throw Error('INVALID_INPUT');
    // Deliberately no input value, field, screenshot or page text in the audit record/model messages.
-   this.audit(t,'customer_input');return this.state(t)
+   if(!t.lastInputAudit||this.now()-t.lastInputAudit>10000){this.audit(t,'customer_input');t.lastInputAudit=this.now()}return this.state(t)
   }
   throw Error('INVALID_PILOT_ACTION')
  }
- async get(user){this.guard(user);const t=this.tasks.get(user.id);if(!t)return{task:null,browser:null};let browser=null;if(this.browser.sessions.has(user.id)){try{browser=await this.capture(t)}catch{}}return{task:this.state(t),browser}}
+ async openBrowser(user){
+  this.guard(user);if(this.tasks.has(user.id)&&this.browser.sessions.has(user.id))return this.state(this.tasks.get(user.id));
+  if(this.browser.sessions.size>=this.browser.maxSessions)throw Error('PILOT_CAPACITY');
+  const t={id:randomUUID(),userId:user.id,prompt:'',status:'takeover',model:policy.fallbackModel,messages:[],events:[],last:this.now(),epoch:0,loop:false,pending:null};
+  this.tasks.set(user.id,t);
+  try{await this.browser.open(user.id,'https://www.google.com/');this.configure(t);this.touch(t);this.event(t,'Your browser is ready. Browse or sign in privately. Tell Axel what you want done in chat, then choose Let Axel take over.');this.audit(t,'browser_open');return this.state(t)}catch(e){this.tasks.delete(user.id);throw e}
+ }
+ async get(user,{stream=false}={}){this.guard(user);const t=this.tasks.get(user.id);if(!t)return{task:null,browser:null};let browser=null;if(this.browser.sessions.has(user.id)){try{const p=this.session(t).page;browser=stream?{url:p.url(),title:await p.title(),width:1180,height:720}:await this.capture(t)}catch{}}return{task:this.state(t),browser}}
  async handle(req,res,{user,readBody,send,originAllowed}){
   try{
    this.guard(user);
-   if(req.method==='GET')return send(res,200,await this.get(user));
+   if(req.method==='GET')return send(res,200,await this.get(user,{stream:new URL(req.url,'http://localhost').searchParams.has('stream')}));
    if(req.method!=='POST')return send(res,405,{error:'Method not allowed.'});
    if(!originAllowed||!/^application\/json(?:;|$)/.test(req.headers['content-type']||''))return send(res,403,{error:'Request origin not allowed.'});
    const data=await readBody(req);const task=await this.command(user,data);return send(res,200,{task,text:task?.text||'',model:task?.model||null});

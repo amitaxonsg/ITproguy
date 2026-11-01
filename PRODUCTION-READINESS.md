@@ -1,3 +1,18 @@
+## 2 November 2026 — Self-hosted live browser deployed
+
+Release: launch-20261102-live-browser-v1. No paid browser provider or new remote-desktop service was installed. Existing VPS Chromium now supplies a live CDP screencast over authenticated same-origin SSE. This replaces periodic full screenshots in the customer UI; model inspection still takes screenshots only outside private takeover.
+
+Changes: runtime/pilot-stream.mjs streams JPEG frames with backpressure, one viewer per account, session/auth expiry checks and cleanup. /api/pilot/stream derives account ownership from the existing secure cookie; cross-site viewers are rejected. Metadata polling uses /api/pilot?stream=1 and does not capture screenshots. Customers can open a browser without a model call, navigate using the address bar, click/type/paste directly in the image, then explicitly hand control to Axel. Text input is coalesced while requests are in flight. Password/OTP detection ignores hidden fields. Existing private mode, metering, model/tool approvals and identity login are retained. Browser input is blocked while Axel runs; private values are not recorded in model messages or audit events.
+
+Verification: production build, git diff check and all 35 existing tests pass. runtime/live-browser-smoke.mjs ran as axonadmin with the production Node executable and verified a real live frame, direct typing, hidden password detection, unauthenticated/cross-origin rejection and input blocked during agent control. Live HTTPS UI opened the VPS browser, navigated to a disposable test form, typed Axel via keyboard events and explicitly handed the session to Claude. Axel correctly reported title ITProGuy browser verification and field value Axel without changes. The test session was ended and temporary form removed. API health is HTTP 200. Initial restart produced a transient 503 during the roughly 8-second Node startup, then recovered.
+
+Capacity: German host has 6 CPU cores, about 12 GB RAM (11 GiB shown), about 5.9 GiB available and 63 GB disk free at check. Existing shared applications remain running. After the test, API service MemoryCurrent was about 211 MiB. This is not a concurrency benchmark. Existing two browser slots and 1 GiB API cap remain; each uses an isolated browser context, not a hardened per-customer VM/container. Upgrade capacity only after measuring load and strengthening isolation.
+
+Pending: actual Google/Microsoft customer sign-in and post-login tasks, latency/load tests, mobile/IME/paste/drag/drop/accessibility coverage, durable task/session recovery and stronger browser isolation. The exact per-action approval policy is unchanged; proposed task-plan approval with risk-based routine actions remains to be designed/reviewed. Broad paid production is still blocked by the previously listed checkout, webhook, invoices, renewals/refunds, security/legal and UAT work. No browser engine can guarantee third-party login acceptance or CAPTCHA success. No Browser Use package or cloud account was added.
+
+Rollback: /srv/itproguy/backups/live-pre-20261102 contains pre-update runtime source modules and static webroot. Restore pilot.mjs and customer-server.mjs to /srv/itproguy/runtime and restore public/, restart itproguy-api, then verify health. Do not roll back the customer database. Recovery: Cloud Shell, ssh axon-german. Repo /srv/itproguy/repo; active runtime /srv/itproguy/runtime; webroot /var/www/itproguy.com/public. Tests/logs: /srv/itproguy/staging/live-browser-tests-full.log and live-browser-smoke.log. Ended the disposable test browser; next customer starts with Open browser.
+
+
 # ITProGuy Production Readiness
 
 # Axel continuation checkpoint — 31 October 2026
