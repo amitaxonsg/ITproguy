@@ -1,5 +1,5 @@
 ## 2 November 2026 — Browser-first workspace and scrolling improvements
-Release: launch-20261102-browser-first-v4. Supersedes the earlier fixed split-view presentation; product/accounts/billing/identity login remain.
+Release: launch-20261102-browser-first-v5. Supersedes the earlier fixed split-view presentation; product/accounts/billing/identity login remain.
 
 Deployed UI: full-size browser by default; top-left hamburger with task/history/profile/usage/invoices/pricing/help/privacy/security/terms/fair-use/sign-out options; Ask Axel opens a collapsible right panel with a bottom-fixed composer. Compact browser controls replace the large heading and private-control banner. Mobile 390x844 check passed for panel open/close and fixed composer; temporary viewport override was reset. Current limitations on checkout remain accurately visible.
 
