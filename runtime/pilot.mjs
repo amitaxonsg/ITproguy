@@ -19,6 +19,10 @@ const TOOLS=[
  {name:'handoff',description:'Pause for customer login, CAPTCHA, consent, financial/legal action, or private input in the pilot. No browser content is sent to the model while paused.',input_schema:{...schema({reason:str('Short explanation of what the customer needs to complete')}),required:['reason']}}
 ];
 
+export function publicCreditsNavigation(current,pageUrl){
+ try{const to=new URL(current.href),from=new URL(pageUrl);return current.tag==='a'&&!current.onclick&&!current.download&&!current.form&&current.role!=='button'&&to.origin===from.origin&&['axon.com.sg','www.axon.com.sg'].includes(to.hostname)&&to.pathname==='/credit-top-up.html'&&!to.search&&!to.hash}catch{return false}
+}
+
 export class PilotService {
  constructor({browser,client,accounts,reserveUsage,finishUsage,now=Date.now}){
   this.browser=browser;this.client=client;this.accounts=accounts;this.reserveUsage=reserveUsage;this.finishUsage=finishUsage;this.now=now;this.tasks=new Map();
@@ -54,10 +58,10 @@ export class PilotService {
   if(tool.name==='scroll'){await this.session(t).page.mouse.wheel(0,i.direction==='up'?-520:520);return this.inspect(t)}
   if(tool.name==='click'||tool.name==='fill'){
    const target=t.targets?.get(i.target);if(!target||target.url!==this.session(t).page.url())throw Error('TARGET_CHANGED_INSPECT_AGAIN');
-   const current=await target.handle.evaluate(e=>({name:(e.getAttribute('aria-label')||e.labels?.[0]?.innerText||e.innerText||e.getAttribute('placeholder')||e.getAttribute('name')||'').slice(0,200),secret:e.getAttribute('type')==='password'||/password|one-time-code|cc-number|cc-csc/.test(e.getAttribute('autocomplete')||'')}));
+   const current=await target.handle.evaluate(e=>({tag:e.tagName.toLowerCase(),href:e.tagName==='A'?e.href:null,onclick:!!e.getAttribute('onclick'),download:e.hasAttribute('download'),form:!!e.closest('form'),role:e.getAttribute('role')||'',name:(e.getAttribute('aria-label')||e.labels?.[0]?.innerText||e.innerText||e.getAttribute('placeholder')||e.getAttribute('name')||'').slice(0,200),secret:e.getAttribute('type')==='password'||/password|one-time-code|cc-number|cc-csc/.test(e.getAttribute('autocomplete')||'')}));
    if(current.name!==target.name||!await target.handle.boundingBox())throw Error('TARGET_CHANGED_INSPECT_AGAIN');
    if(current.secret||await this.loginPage(t)){t.status='takeover';this.event(t,'Please complete this private step in the pilot, then resume Axel.');return{customerHandoff:true}}
-   if(/\b(pay|purchase|buy|place order|accept terms|delete account|permanently delete|change password|grant consent)\b/i.test(target.name+' '+(i.reason||''))){t.status='takeover';this.event(t,'Please complete this consequential step yourself in the pilot. Axel is paused.');return{customerHandoff:true}}
+   if(/\b(pay|purchase|buy|place order|accept terms|delete account|permanently delete|change password|grant consent)\b/i.test(target.name+' '+(i.reason||''))&&!(tool.name==='click'&&publicCreditsNavigation(current,this.session(t).page.url()))){t.status='takeover';this.event(t,'This control may submit a payment or another sensitive change. Nothing was clicked. Please take control to complete it; Axel is paused.');return{customerHandoff:true}}
    if(tool.name==='click')await target.handle.click({timeout:10000});else{if(target.secret||typeof i.text!=='string'||i.text.length>8192||looksLikeSecret(i.text))throw Error('PRIVATE_INPUT_REQUIRES_TAKEOVER');await target.handle.fill(i.text,{timeout:10000})}
   }else if(tool.name==='key'){if(!['Enter','Tab','Escape','ArrowDown','ArrowUp','Control+A'].includes(i.key))throw Error('UNSUPPORTED_KEY');await this.session(t).page.keyboard.press(i.key)}else throw Error('UNKNOWN_TOOL');
   this.audit(t,'approved_'+tool.name,this.session(t).page.url());await this.session(t).page.waitForTimeout(400);return this.inspect(t)
