@@ -1,3 +1,4 @@
+import {attachPilotControl} from './pilot-control.mjs';
 import {streamPilot} from './pilot-stream.mjs';
 import http from 'node:http';
 import {config} from 'dotenv';
@@ -75,7 +76,7 @@ function finishUsage(id,{status,model='claude-haiku-5-5',attempts=[],elapsedSeco
 }
 
 const pilot=new PilotService({browser:browserRuntime,client:aiClient,accounts,reserveUsage,finishUsage,now});
- return http.createServer(async(req,res)=>{
+ const server=http.createServer(async(req,res)=>{
   let usageId=null;
   try{
    const path=req.url?.split('?')[0]||'/';
@@ -131,6 +132,8 @@ try{
    console.error(JSON.stringify({event:'customer_request_failed',code:status===400?'INVALID_REQUEST':'SERVICE_ERROR',errorType:typeof e?.name==='string'?e.name:'Error',reason:typeof e?.message==='string'&&/^[A-Z0-9_]{1,48}$/.test(e.message)?e.message:/browser(?:Type.launch|Context.newPage)/.test(String(e?.message||''))?'BROWSER_LAUNCH_FAILED':'UNCLASSIFIED'}));
   }
  });
+ attachPilotControl(server,{accounts,pilot,origins});
+ return server;
 }
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){

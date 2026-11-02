@@ -1,3 +1,4 @@
+import {performance} from 'node:perf_hooks';
 import {randomUUID} from 'node:crypto';
 import {policy} from './claude-router.mjs';
 
@@ -23,31 +24,46 @@ export function publicCreditsNavigation(current,pageUrl){
  try{const to=new URL(current.href),from=new URL(pageUrl);return current.tag==='a'&&!current.onclick&&!current.download&&!current.form&&current.role!=='button'&&to.origin===from.origin&&['axon.com.sg','www.axon.com.sg'].includes(to.hostname)&&to.pathname==='/credit-top-up.html'&&!to.search&&!to.hash}catch{return false}
 }
 
+export const executionEffort=prompt=>/migrat|security|dns|dkim|database|permission|backup|server configuration|refund|billing|develop|deploy|debug|repair|fix/i.test(prompt||'')?'medium':'low';
+
 export class PilotService {
  constructor({browser,client,accounts,reserveUsage,finishUsage,now=Date.now}){
   this.browser=browser;this.client=client;this.accounts=accounts;this.reserveUsage=reserveUsage;this.finishUsage=finishUsage;this.now=now;this.tasks=new Map();
   this.browser.idleMs=HOUR;
+  accounts.db.exec('CREATE TABLE IF NOT EXISTS pilot_timings(id INTEGER PRIMARY KEY,task_id TEXT NOT NULL,phase TEXT NOT NULL,ms INTEGER NOT NULL,at INTEGER NOT NULL)');
+  for(const name of ['inspect','capture','perform']){const original=this[name].bind(this);this[name]=async(t,...args)=>{const start=performance.now(),previous=t.phase;t.phase=name;try{return await original(t,...args)}finally{this.timing(t,name,performance.now()-start);t.phase=previous}}}
+
   accounts.db.exec('CREATE TABLE IF NOT EXISTS pilot_audit(id INTEGER PRIMARY KEY,user_id TEXT NOT NULL,task_id TEXT NOT NULL,event TEXT NOT NULL,site TEXT,at INTEGER NOT NULL)');
   this.timer=setInterval(()=>{for(const [id,t] of this.tasks)if(this.now()-t.last>HOUR)this.end(id).catch(()=>{})},30000);this.timer.unref?.();
  }
+ timing(t,phase,ms){t.timings??={};t.timings[phase]=(t.timings[phase]||0)+Math.round(ms);this.accounts.db.prepare('INSERT INTO pilot_timings(task_id,phase,ms,at) VALUES(?,?,?,?)').run(t.id,phase,Math.round(ms),this.now())}
  audit(t,event,url){let site=null;try{site=new URL(url).origin}catch{}this.accounts.db.prepare('INSERT INTO pilot_audit(user_id,task_id,event,site,at) VALUES(?,?,?,?,?)').run(t.userId,t.id,event,site,this.now())}
  event(t,text){t.events.push({id:randomUUID(),text,at:this.now()});t.last=this.now()}
  guard(user){if(!user)throw Error('SIGN_IN_REQUIRED');if(user.account_status&&user.account_status!=='active')throw Error('ACCOUNT_PAUSED')}
- state(t){return t?{id:t.id,prompt:t.prompt,status:t.status,busy:t.loop,events:t.events.slice(-40),text:t.events.map(x=>x.text).join('\n\n'),model:t.model,approval:t.pending?{id:t.pending.id,kind:t.pending.tool.name,reason:t.pending.tool.input.reason||'Open another website',target:t.pending.targetName||'',url:t.pending.url||'',value:t.pending.tool.name==='fill'?t.pending.tool.input.text:undefined}:null,balance:t.balance}:null}
+ state(t){return t?{id:t.id,prompt:t.prompt,status:t.status,busy:t.loop,events:t.events.slice(-40),text:t.events.map(x=>x.text).join('\n\n'),model:t.model,phase:t.phase||null,timings:t.timings||{},approval:t.pending?{id:t.pending.id,kind:t.pending.tool.name,reason:t.pending.tool.input.reason||'Open another website',target:t.pending.targetName||'',url:t.pending.url||'',value:t.pending.tool.name==='fill'?t.pending.tool.input.text:undefined}:null,balance:t.balance}:null}
  session(t){const s=this.browser.sessions.get(t.userId);if(!s)throw Error('BROWSER_SESSION_EXPIRED');return s}
  touch(t){t.last=this.now();const s=this.browser.sessions.get(t.userId);if(s){s.last=this.now();clearTimeout(s.timer);s.timer=setTimeout(()=>this.end(t.userId).catch(()=>{}),HOUR);s.timer.unref?.()}}
  async loginPage(t){const p=this.session(t).page;if(/(^|\.)(accounts\.google\.com|login\.microsoftonline\.com|login\.live\.com)$/.test(new URL(p.url()).hostname))return true;for(const frame of p.frames())if(await frame.locator('input[type="password"]:visible,input[autocomplete="one-time-code"]:visible').count().catch(()=>0)>0)return true;return false}
- async capture(t){const p=this.session(t).page;const shot=await p.screenshot({type:'jpeg',quality:55,scale:'css',timeout:8000});return{url:p.url(),title:await p.title(),screenshot:shot.toString('base64'),width:p.viewportSize?.()?.width||1180,height:p.viewportSize?.()?.height||720}}
+ async capture(t){const p=this.session(t).page;let screenshot;const context=p.context?.();if(context?.newCDPSession){const cdp=await context.newCDPSession(p);let timer;try{const shot=await Promise.race([cdp.send('Page.captureScreenshot',{format:'jpeg',quality:55,fromSurface:true,captureBeyondViewport:false}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('CAPTURE_TIMEOUT')),8000)})]);screenshot=shot.data}finally{clearTimeout(timer);await cdp.detach().catch(()=>{})}}else{screenshot=(await p.screenshot({type:'jpeg',quality:55,scale:'css',timeout:8000})).toString('base64')}return{url:p.url(),title:await p.title(),screenshot,width:p.viewportSize?.()?.width||1180,height:p.viewportSize?.()?.height||720}}
  async inspect(t){
   if(await this.loginPage(t)){t.status='takeover';this.event(t,'Please take control of the pilot to sign in. Resume Axel when you have finished.');this.audit(t,'login_handoff',this.session(t).page.url());return{loginRequired:true}}
-  const s=this.session(t),p=s.page;const shot=await this.capture(t);t.targets=new Map();const targets=[];
-  for(const h of (await Promise.all(p.frames().map(frame=>frame.$$('a,button,input,textarea,select,[role="button"],[role="link"],[contenteditable="true"]').catch(()=>[])))).flat()){
-   const box=await h.boundingBox().catch(()=>null);if(!box||box.x+box.width<0||box.y+box.height<0||box.x>(p.viewportSize?.()?.width||1180)||box.y>(p.viewportSize?.()?.height||720))continue;
-   const info=await h.evaluate(e=>({tag:e.tagName.toLowerCase(),type:e.getAttribute('type')||'',name:(e.getAttribute('aria-label')||e.labels?.[0]?.innerText||e.innerText||e.getAttribute('placeholder')||e.getAttribute('name')||'').slice(0,200),href:e.tagName==='A'?e.href:null,secret:e.getAttribute('type')==='password'||/password|one-time-code|cc-number|cc-csc/.test(e.getAttribute('autocomplete')||'')}));
-   if(info.secret)continue;const id=randomUUID();t.targets.set(id,{handle:h,...info,url:p.url()});targets.push({id,...info});if(targets.length>=100)break;
-  }
-  return{url:shot.url,title:shot.title,text:(await p.locator('body').innerText({timeout:4000}).catch(()=>'' )).slice(0,16000),targets,screenshot:shot.screenshot}
+  const s=this.session(t),p=s.page;const shotPromise=this.capture(t);t.targets=new Map();const targets=[];
+  const collect=async()=>{
+   for(const frame of p.frames()){
+    if(targets.length>=100)break;
+    const handles=await frame.$$('a,button,input,textarea,select,[role="button"],[role="link"],[contenteditable="true"]').catch(()=>[]);
+    let offset={x:0,y:0};if(frame!==p.mainFrame()){const element=await frame.frameElement().catch(()=>null);const box=await element?.boundingBox().catch(()=>null);if(!box)continue;offset=box}
+    const rows=await frame.evaluate(elements=>elements.map(e=>{const r=e.getBoundingClientRect();return{box:{x:r.x,y:r.y,width:r.width,height:r.height},info:{tag:e.tagName.toLowerCase(),type:e.getAttribute('type')||'',name:(e.getAttribute('aria-label')||e.labels?.[0]?.innerText||e.innerText||e.getAttribute('placeholder')||e.getAttribute('name')||'').slice(0,200),href:e.tagName==='A'?e.href:null,secret:e.getAttribute('type')==='password'||/password|one-time-code|cc-number|cc-csc/.test(e.getAttribute('autocomplete')||'')}}}),handles).catch(()=>[]);
+    for(let index=0;index<rows.length&&targets.length<100;index++){
+     const {box,info}=rows[index];const x=box.x+offset.x,y=box.y+offset.y;if(info.secret||box.width<=0||box.height<=0||x+box.width<0||y+box.height<0||x>(p.viewportSize?.()?.width||1180)||y>(p.viewportSize?.()?.height||720))continue;
+     const id=randomUUID();t.targets.set(id,{handle:handles[index],...info,url:p.url()});targets.push({id,...info});
+    }
+   }
+  };
+  const [shot,,text]=await Promise.all([shotPromise,collect(),p.locator('body').innerText({timeout:4000}).catch(()=>'')]);
+  return{url:shot.url,title:shot.title,text:text.slice(0,16000),targets,screenshot:shot.screenshot}
  }
+
  configure(t){const s=this.session(t);if(s.pilotConfigured)return;s.pilotConfigured=true;s.page.removeAllListeners('popup');s.page.on('popup',p=>{s.page=p;p.setDefaultTimeout(10000);p.on('download',d=>d.cancel().catch(()=>{}))});s.page.setDefaultTimeout(10000)}
  async navigate(t,url){const u=new URL(url);if(!['http:','https:'].includes(u.protocol)||u.username||u.password)throw Error('INVALID_URL');await this.browser.open(t.userId,u.href,{preview:false});this.configure(t);this.touch(t);this.audit(t,'navigate',u.href);return this.inspect(t)}
  async perform(t,tool){
@@ -80,7 +96,7 @@ export class PilotService {
    const usage=this.reserveUsage(t.userId);if(usage===null){t.status='paused';this.event(t,'Your available work time is used up. Your browser is paused.');break}
    const started=this.now();let charged=false;t.abort=new AbortController();
    try{
-    const response=await this.client.messages.create({model:t.model,max_tokens:policy.maxOutputTokens,thinking:{type:'adaptive'},output_config:{effort:'medium'},system:PILOT_SYSTEM,tools:TOOLS,tool_choice:{type:'auto',disable_parallel_tool_use:true},messages:t.messages},{signal:t.abort.signal});
+    t.phase='model';const modelStarted=performance.now();const response=await this.client.messages.create({model:t.model,max_tokens:policy.maxOutputTokens,thinking:{type:'adaptive'},output_config:{effort:t.effort||executionEffort(t.prompt)},system:PILOT_SYSTEM,tools:TOOLS,tool_choice:{type:'auto',disable_parallel_tool_use:true},messages:t.messages},{signal:t.abort.signal});this.timing(t,'model',performance.now()-modelStarted);
     if(t.epoch!==epoch||t.status!=='running'){this.finishUsage(usage,{status:'failed',model:t.model,attempts:[],elapsedSeconds:0});charged=true;break}
     t.balance=this.finishUsage(usage,{status:'complete',model:t.model,attempts:[{usage:response.usage,requestId:response._request_id}],elapsedSeconds:Math.max(1,Math.ceil((this.now()-started)/1000))});charged=true;
     if(response.stop_reason==='refusal'){t.status='blocked';this.event(t,'I cannot perform that task.');break}
@@ -100,8 +116,8 @@ export class PilotService {
  }
  async start(user,prompt){
   this.guard(user);if(!this.client||!this.browser.available())throw Error('PILOT_UNAVAILABLE');if(typeof prompt!=='string'||!prompt.trim()||prompt.length>16000)throw Error('INVALID_TASK');if(looksLikeSecret(prompt))throw Error('PRIVATE_INPUT_IN_CHAT');
-  let t=this.tasks.get(user.id);if(t&&ACTIVE.has(t.status)){t.queued??=[];t.queued.push(prompt.trim());t.planApproved=false;this.event(t,'Your instruction was added to the current task.');return this.state(t)}if([...this.tasks.values()].filter(x=>x.userId!==user.id&&ACTIVE.has(x.status)).length>=this.browser.maxSessions)throw Error('PILOT_CAPACITY');
-  t={id:randomUUID(),userId:user.id,prompt:prompt.trim(),status:'running',model:policy.fallbackModel,messages:[{role:'user',content:prompt.trim()}],events:[],last:this.now(),epoch:0,loop:false,pending:null};this.tasks.set(user.id,t);this.event(t,'Axel is checking the task in your pilot browser.');this.audit(t,'start');queueMicrotask(()=>this.run(t));return this.state(t)
+  let t=this.tasks.get(user.id);if(t&&ACTIVE.has(t.status)){t.queued??=[];t.queued.push(prompt.trim());t.planApproved=false;if(executionEffort(prompt)==='medium')t.effort='medium';this.event(t,'Your instruction was added to the current task.');return this.state(t)}if([...this.tasks.values()].filter(x=>x.userId!==user.id&&ACTIVE.has(x.status)).length>=this.browser.maxSessions)throw Error('PILOT_CAPACITY');
+  t={id:randomUUID(),userId:user.id,prompt:prompt.trim(),effort:executionEffort(prompt),status:'running',model:policy.fallbackModel,messages:[{role:'user',content:prompt.trim()}],events:[],last:this.now(),epoch:0,loop:false,pending:null};this.tasks.set(user.id,t);this.event(t,'Axel is checking the task in your pilot browser.');this.audit(t,'start');queueMicrotask(()=>this.run(t));return this.state(t)
  }
  async command(user,data){
   this.guard(user);if(data.action==='open')return this.openBrowser(user);if(data.action==='start')return this.start(user,data.prompt);const t=this.tasks.get(user.id);if(!t)throw Error('NO_ACTIVE_PILOT');if(data.taskId!==t.id)throw Error('PILOT_TASK_CHANGED');this.touch(t);
